@@ -1,0 +1,335 @@
+:root {
+  --primary: #274B44;
+  --primary-dark: #1e3d37;
+  --gray-100: #f6f8fb;
+  --gray-200: #edf0f7;
+  --gray-300: #dde1e7;
+  --gray-700: #4a5568;
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-size: 0.9em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  padding: 2em;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 2em;
+  align-items: start;
+}
+
+.container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  padding: 2em;
+}
+
+h2 {
+  text-align: center;
+  font-size: 1.75rem;
+  margin-bottom: 1.5em;
+  font-weight: 600;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5em;
+  font-size: 0.9rem;
+}
+
+/* Form Inputs */
+input:not([class*="react-select"]),
+textarea {
+  width: 100%;
+  margin-bottom: 1em;
+  padding: 0.75em 1em;
+  border-radius: 8px;
+  border: 1px solid var(--gray-300);
+  background: var(--gray-100);
+  font-size: 1rem;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+input[type="file"] {
+  padding: 0.5em;
+  background: white;
+}
+
+textarea {
+  resize: vertical;
+  max-height: 200px;
+  min-height: 60px;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.15);
+}
+
+button[type="submit"] {
+  width: 100%;
+  padding: 1em;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 1em;
+}
+
+button[type="submit"]:hover {
+  background: var(--primary-dark);
+}
+
+.add-item-btn {
+  background: transparent;
+  color: var(--primary);
+  border: 1px dashed var(--primary);
+  padding: 0.6em 1em;
+  margin-bottom: 1em;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.add-item-btn:hover {
+  background: var(--gray-100);
+}
+
+#status {
+  margin-top: 1.5em;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Expense Item Card */
+.expense-item {
+  border: 1px solid var(--gray-300);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 1em;
+  box-shadow: 0px 1px 7px 0px rgb(0 0 0 / 8%);
+}
+
+.remove-item {
+  background: #f8d7da;
+  color: #721c24;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  width: auto;
+  margin-top: 0;
+}
+
+/* React Select Styles */
+.react-select__control {
+  min-height: 45px;
+  border: 1px solid var(--gray-300) !important;
+  border-radius: 8px !important;
+  background: var(--gray-100) !important;
+  box-shadow: none !important;
+  margin-bottom: 1em;
+}
+
+.react-select__control--is-focused {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.15) !important;
+}
+
+.react-select__menu {
+  border: 1px solid var(--gray-300);
+  border-radius: 8px !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.react-select__option--is-selected {
+  background-color: var(--primary) !important;
+}
+
+.react-select__option--is-focused:not(.react-select__option--is-selected) {
+  background-color: var(--gray-200) !important;
+}
+
+form.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Approval Status Badges */
+span.approvalStatus {
+  font-weight: 600;
+  text-transform: capitalize;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 20px;
+}
+
+span.approvalStatus.pending {
+  background-color: #fff4e5;
+  color: #d97b00;
+}
+
+span.approvalStatus.approved {
+  background-color: #e7f8ec;
+  color: #2e8b57;
+}
+
+span.approvalStatus.rejected {
+  background-color: #fdecea;
+  color: #d93025;
+}
+
+/* Data Table Styling */
+.table-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  padding: 1.5em;
+}
+
+#reimbursementTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", Arial, sans-serif;
+  font-size: 14px;
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+#reimbursementTable thead {
+  background-color: var(--primary);
+  color: white;
+}
+
+#reimbursementTable thead th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  border: none;
+}
+
+#reimbursementTable thead th:nth-child(odd) {
+  background: var(--primary-dark);
+}
+
+#reimbursementTable tbody tr {
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s ease;
+}
+
+#reimbursementTable tbody tr:hover {
+  background-color: #f7fff5;
+}
+
+#reimbursementTable td {
+  padding: 8px 12px;
+  color: #333;
+}
+
+.td-text-center {
+  text-align: center;
+}
+
+.dt-layout-table {
+  overflow-x: auto;
+}
+
+/* Table Controls */
+.dt-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1em;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+.dt-controls.dt-bottom {
+  margin-bottom: 0;
+  margin-top: 1em;
+}
+
+.dt-controls select {
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 3px 5px;
+}
+
+.dt-controls input[type="text"] {
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 5px 8px;
+  margin-left: 8px;
+  margin-bottom: 0;
+  width: auto;
+}
+
+.dt-pagination {
+  display: flex;
+  gap: 2px;
+}
+
+.dt-pagination button {
+  border-radius: 4px;
+  border: 1px solid transparent;
+  padding: 3px 8px;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  width: auto;
+  margin-top: 0;
+}
+
+.dt-pagination button.active {
+  background-color: var(--primary);
+  color: white;
+  border: 1px solid var(--primary);
+}
+
+.dt-pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+  body {
+    padding: 0.8em;
+  }
+}
