@@ -5,7 +5,7 @@ import Select from "react-select";
 import ExpenseItem from "./components/ExpenseItem";
 import ReimbursementTable from "./components/ReimbursementTable";
 import { createClient } from "@/utils/supabase/client";
-import { LogOut, Plus, ShieldCheck, Send } from "lucide-react";
+import { LogOut, Plus, ShieldCheck, Send, Menu, X } from "lucide-react";
 
 interface Option {
   value: string;
@@ -61,6 +61,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const [approverOptions, setApproverOptions] = useState<Option[]>([]);
   const [projectOptions, setProjectOptions] = useState<Option[]>([]);
@@ -197,31 +198,36 @@ export default function Home() {
       <div className="header-bar">
         <img src="/murka-logo.svg" alt="Murka" className="header-logo" />
         {user && (
-          <div className="header-user">
-            {user.isAdmin && (
-              <a href="/admin" className="admin-link">
-                <ShieldCheck size={14} /> Admin
-              </a>
-            )}
-            {user.avatar_url && (
-              <img
-                src={user.avatar_url}
-                alt=""
-                className="header-avatar"
-                referrerPolicy="no-referrer"
-              />
-            )}
-            <span>
-              {user.name} ({user.email})
-            </span>
-            <button
-              type="button"
-              className="sign-out-btn"
-              onClick={handleSignOut}
-            >
-              <LogOut size={14} /> Sign out
+          <>
+            <button className="burger-btn" onClick={() => setMenuOpen(!menuOpen)}>
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-          </div>
+            <div className={`header-user ${menuOpen ? "open" : ""}`}>
+              {user.isAdmin && (
+                <a href="/admin" className="admin-link">
+                  <ShieldCheck size={14} /> Admin
+                </a>
+              )}
+              {user.avatar_url && (
+                <img
+                  src={user.avatar_url}
+                  alt=""
+                  className="header-avatar"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <span>
+                {user.name} ({user.email})
+              </span>
+              <button
+                type="button"
+                className="sign-out-btn"
+                onClick={handleSignOut}
+              >
+                <LogOut size={14} /> Sign out
+              </button>
+            </div>
+          </>
         )}
       </div>
 

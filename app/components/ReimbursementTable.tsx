@@ -70,6 +70,14 @@ function CollapsibleItems({
       style={{ height: isOpen ? height : 0, opacity: isOpen ? 1 : 0 }}
     >
       <div ref={contentRef} className="collapse-content">
+        <div className="sub-header">
+          <div className="col col-chevron"></div>
+          <div className="col col-name">Project</div>
+          <div className="col col-date">Date</div>
+          <div className="col col-files">Files</div>
+          <div className="col col-amount">Amount</div>
+          <div className="col col-status">Status</div>
+        </div>
         {items.map((item) => (
           <div key={item.id} className="sub-row">
             <div className="col col-chevron"></div>
@@ -88,7 +96,7 @@ function CollapsibleItems({
               )}
             </div>
             <div className="col col-date">{formatDate(item.expense_date)}</div>
-            <div className="col col-files hide-mobile">
+            <div className="col col-files">
               {item.proof_files?.length > 0
                 ? item.proof_files.map((f) => (
                     <a
@@ -239,12 +247,13 @@ export default function ReimbursementTable({
         </div>
       </div>
 
+      <div className="list-scroll-inner">
       {/* Header */}
       <div className="list-header">
         <div className="col col-chevron"></div>
         <div className="col col-name">Group ID</div>
         <div className="col col-date">Submitted</div>
-        <div className="col col-files hide-mobile">Approver</div>
+        <div className="col col-files">Approver</div>
         <div className="col col-amount">Approved Total</div>
         <div className="col col-status">Items</div>
       </div>
@@ -275,7 +284,7 @@ export default function ReimbursementTable({
                       timeZone: "Asia/Jakarta",
                     })}
                   </div>
-                  <div className="col col-files hide-mobile">
+                  <div className="col col-files">
                     {g.approver}
                   </div>
                   <div className="col col-amount">
@@ -295,6 +304,7 @@ export default function ReimbursementTable({
             );
           })
         )}
+      </div>
       </div>
 
       {/* Pagination */}
