@@ -83,28 +83,38 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { id } = (await request.json()) as { id: number };
-    if (!id) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    const { groupId } = (await request.json()) as { groupId: number };
+    if (!groupId) {
+      return NextResponse.json({ error: "groupId is required" }, { status: 400 });
     }
 
-    // Get proof files to delete from storage
-    const { data: proofFiles } = await supabase
-      .from("proof_files")
-      .select("file_path")
-      .eq("reimbursement_id", id);
-
-    // Delete files from storage
-    if (proofFiles && proofFiles.length > 0) {
-      const paths = proofFiles.map((f) => f.file_path);
-      await supabase.storage.from("receipts").remove(paths);
-    }
-
-    // Delete reimbursement (proof_files cascade-deleted via FK)
-    const { error: deleteError } = await supabase
+    // Get all reimbursement IDs in this group
+    const { data: items } = await supabase
       .from("reimbursements")
+      .select("id")
+      .eq("group_id_fk", groupId);
+
+    if (items && items.length > 0) {
+      const itemIds = items.map((i) => i.id);
+
+      // Get all proof files for these items
+      const { data: proofFiles } = await supabase
+        .from("proof_files")
+        .select("file_path")
+        .in("reimbursement_id", itemIds);
+
+      // Delete files from storage
+      if (proofFiles && proofFiles.length > 0) {
+        const paths = proofFiles.map((f) => f.file_path);
+        await supabase.storage.from("receipts").remove(paths);
+      }
+    }
+
+    // Delete group (reimbursements + proof_files cascade-deleted via FK)
+    const { error: deleteError } = await supabase
+      .from("reimbursement_groups")
       .delete()
-      .eq("id", id);
+      .eq("id", groupId);
 
     if (deleteError) throw deleteError;
 

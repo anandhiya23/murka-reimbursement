@@ -5,8 +5,7 @@ import Select from "react-select";
 import ExpenseItem from "./components/ExpenseItem";
 import ReimbursementTable from "./components/ReimbursementTable";
 import { createClient } from "@/utils/supabase/client";
-import { LogOut, Plus, ShieldCheck, Send, X } from "lucide-react";
-import { formatDate } from "@/lib/format";
+import { LogOut, Plus, ShieldCheck, Send } from "lucide-react";
 
 interface Option {
   value: string;
@@ -21,22 +20,26 @@ interface ExpenseItemData {
   files: FileList | null;
 }
 
-interface ReimbursementRow {
+interface ReimbursementGroup {
   id: number;
-  created_at: string;
+  group_code: string;
   requester: string;
-  project: string;
-  expense_date: string;
-  description: string;
-  amount: number;
-  proof_url: string;
+  requester_email: string;
   approver: string;
-  status: string;
-  group_id: string;
-  reviewed_by: string | null;
-  reviewed_at: string | null;
-  review_message: string | null;
-  proof_files: { id: number; file_name: string; public_url: string }[];
+  created_at: string;
+  reimbursements: {
+    id: number;
+    project: string;
+    expense_date: string;
+    description: string;
+    amount: number;
+    status: string;
+    proof_url: string;
+    proof_files: { id: number; file_name: string; public_url: string }[];
+    reviewed_by: string | null;
+    reviewed_at: string | null;
+    review_message: string | null;
+  }[];
 }
 
 interface UserInfo {
@@ -67,9 +70,7 @@ export default function Home() {
   const [items, setItems] = useState<ExpenseItemData[]>([{ ...emptyItem }]);
   const fileInputsRef = useRef<Map<number, FileList>>(new Map());
 
-  const [tableRows, setTableRows] = useState<ReimbursementRow[]>([]);
-  const [selectedRow, setSelectedRow] = useState<ReimbursementRow | null>(null);
-  const detailRef = useRef<HTMLDivElement>(null);
+  const [groups, setGroups] = useState<ReimbursementGroup[]>([]);
 
   async function loadData() {
     try {
@@ -87,16 +88,13 @@ export default function Home() {
       }
 
       setUser(json.user);
-
       setApproverOptions(
         (json.approvers as string[]).map((n) => ({ value: n, label: n }))
       );
       setProjectOptions(
         (json.projects as string[]).map((n) => ({ value: n, label: n }))
       );
-
-      setTableRows((json.reimbursements as ReimbursementRow[]).reverse());
-
+      setGroups((json.groups as ReimbursementGroup[]).reverse());
       setLoading(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -140,7 +138,6 @@ export default function Home() {
     setStatus("Uploading...");
 
     const savedApprover = approver;
-
     const fd = new FormData();
     fd.append("approver", approver?.value || "");
     fd.append("idemKey", crypto.randomUUID());
@@ -172,15 +169,12 @@ export default function Home() {
       await resp.json();
 
       setStatus("Submitted successfully!");
-
       setItems([{ ...emptyItem }]);
       fileInputsRef.current.clear();
       setApprover(savedApprover);
 
-      // Refresh table
       const json = await fetch("/api/init").then((res) => res.json());
-      setTableRows((json.reimbursements as ReimbursementRow[]).reverse());
-
+      setGroups((json.groups as ReimbursementGroup[]).reverse());
       setLoading(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -194,19 +188,14 @@ export default function Home() {
     return sum + (digits ? parseInt(digits, 10) : 0);
   }, 0);
 
-  function isOwnRow(row: ReimbursementRow): boolean {
-    return user?.name === row.requester;
-  }
-
   function formatAmount(amount: number): string {
     return "Rp" + amount.toLocaleString("id-ID");
   }
 
   return (
     <>
-      {/* Header bar */}
       <div className="header-bar">
-        <img src="/murka-logo.svg" alt="Murka" className="header-logo"/>
+        <img src="/murka-logo.svg" alt="Murka" className="header-logo" />
         {user && (
           <div className="header-user">
             {user.isAdmin && (
@@ -269,7 +258,9 @@ export default function Home() {
             {totalAmount > 0 && (
               <div className="total-bar">
                 <span>Total</span>
-                <span className="total-amount">{formatAmount(totalAmount)}</span>
+                <span className="total-amount">
+                  {formatAmount(totalAmount)}
+                </span>
               </div>
             )}
 
@@ -284,134 +275,15 @@ export default function Home() {
               classNamePrefix="react-select"
             />
 
-            <button type="submit"><Send size={16} /> Submit</button>
+            <button type="submit">
+              <Send size={16} /> Submit
+            </button>
           </form>
           <div id="status">{status}</div>
         </div>
 
         <div className="right-column">
-          <ReimbursementTable
-            rows={tableRows}
-            userRequesterName={user?.name}
-            onRowClick={(row) =>
-              isOwnRow(row)
-                ? (() => {
-                    setSelectedRow(row);
-                    setTimeout(() => detailRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-                  })()
-                : undefined
-            }
-          />
-
-          {selectedRow && (
-            <div className="detail-panel" ref={detailRef}>
-              <div className="detail-header">
-                <h3>Reimbursement Detail</h3>
-                <button
-                  type="button"
-                  className="detail-close"
-                  onClick={() => setSelectedRow(null)}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="detail-body">
-                <div className="detail-row">
-                  <span className="detail-label">Group ID</span>
-                  <span>{selectedRow.group_id}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Submitted</span>
-                  <span>
-                    {new Date(selectedRow.created_at).toLocaleString("en-GB", {
-                      timeZone: "Asia/Jakarta",
-                    })}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Project</span>
-                  <span>{selectedRow.project}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Expense Date</span>
-                  <span>{formatDate(selectedRow.expense_date)}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Description</span>
-                  <span>{selectedRow.description || "-"}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Amount</span>
-                  <span className="detail-amount">
-                    {formatAmount(selectedRow.amount)}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Approver</span>
-                  <span>{selectedRow.approver}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Status</span>
-                  <span
-                    className={`approvalStatus ${selectedRow.status.toLowerCase()}`}
-                  >
-                    {selectedRow.status}
-                  </span>
-                </div>
-                {selectedRow.reviewed_by && (
-                  <>
-                    <div className="detail-row">
-                      <span className="detail-label">Reviewed by</span>
-                      <span>{selectedRow.reviewed_by}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Reviewed at</span>
-                      <span>
-                        {new Date(selectedRow.reviewed_at!).toLocaleString(
-                          "en-GB",
-                          { timeZone: "Asia/Jakarta" }
-                        )}
-                      </span>
-                    </div>
-                  </>
-                )}
-                {selectedRow.review_message && (
-                  <div className="detail-row">
-                    <span className="detail-label">Message</span>
-                    <span>{selectedRow.review_message}</span>
-                  </div>
-                )}
-                {selectedRow.proof_files?.length > 0 ? (
-                  <div className="detail-row">
-                    <span className="detail-label">Proof Files</span>
-                    <div className="detail-files">
-                      {selectedRow.proof_files.map((f) => (
-                        <a
-                          key={f.id}
-                          href={f.public_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {f.file_name}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                ) : selectedRow.proof_url ? (
-                  <div className="detail-row">
-                    <span className="detail-label">Proof Files</span>
-                    <a
-                      href={selectedRow.proof_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      View file
-                    </a>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          )}
+          <ReimbursementTable groups={groups} />
         </div>
       </div>
     </>

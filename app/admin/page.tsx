@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import {
   LogOut,
@@ -15,25 +15,39 @@ import {
   FolderKanban,
   Users,
   Trash2,
+  ChevronRight,
 } from "lucide-react";
 import { formatDate } from "@/lib/format";
 
-interface ReimbursementRow {
+interface ProofFile {
   id: number;
-  created_at: string;
-  requester: string;
+  file_name: string;
+  public_url: string;
+}
+
+interface ReimbursementItem {
+  id: number;
   project: string;
   expense_date: string;
   description: string;
   amount: number;
-  proof_url: string;
-  approver: string;
   status: string;
-  group_id: string;
+  proof_url: string;
+  proof_files: ProofFile[];
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_message: string | null;
-  proof_files: { id: number; file_name: string; public_url: string }[];
+}
+
+interface ReimbursementGroup {
+  id: number;
+  group_code: string;
+  requester: string;
+  requester_email: string;
+  approver: string;
+  created_at: string;
+  notified_at: string | null;
+  reimbursements: ReimbursementItem[];
 }
 
 interface UserInfo {
@@ -56,8 +70,90 @@ interface Requester {
   is_admin: boolean;
 }
 
+function formatAmount(amount: number): string {
+  return "Rp" + amount.toLocaleString("id-ID");
+}
+
+function AdminCollapsibleItems({
+  items,
+  isOpen,
+  onApprove,
+  onReject,
+}: {
+  items: ReimbursementItem[];
+  isOpen: boolean;
+  onApprove: (item: ReimbursementItem) => void;
+  onReject: (item: ReimbursementItem) => void;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight);
+    }
+  }, [items, isOpen]);
+
+  return (
+    <div
+      className="collapse-wrapper"
+      style={{ height: isOpen ? height : 0, opacity: isOpen ? 1 : 0 }}
+    >
+      <div ref={contentRef} className="collapse-content">
+        {items.map((item) => (
+          <div key={item.id} className="sub-row">
+            <div className="col col-chevron"></div>
+            <div className="col col-name">
+              <span className="sub-project">{item.project}</span>
+              {item.description && (
+                <span className="sub-desc">{item.description}</span>
+              )}
+              {item.reviewed_by && (
+                <span className="sub-review">
+                  Reviewed by {item.reviewed_by}
+                  {item.review_message && <> &mdash; &quot;{item.review_message}&quot;</>}
+                </span>
+              )}
+            </div>
+            <div className="col col-date">{formatDate(item.expense_date)}</div>
+            <div className="col col-files hide-mobile">
+              {item.proof_files?.length > 0
+                ? item.proof_files.map((f) => (
+                    <a key={f.id} href={f.public_url} target="_blank" rel="noopener noreferrer" className="proof-link">
+                      <ExternalLink size={12} /> <span className="proof-name">{f.file_name}</span>
+                    </a>
+                  ))
+                : item.proof_url ? (
+                  <a href={item.proof_url} target="_blank" rel="noopener noreferrer" className="proof-link">
+                    <ExternalLink size={12} /> View
+                  </a>
+                ) : null}
+            </div>
+            <div className="col col-amount sub-amount">{formatAmount(item.amount)}</div>
+            <div className="col col-status">
+              <span className={`approvalStatus ${item.status.toLowerCase()}`}>{item.status}</span>
+            </div>
+            <div className="col col-actions" onClick={(e) => e.stopPropagation()}>
+              {item.status === "Pending" ? (
+                <>
+                  <button className="btn-approve" onClick={() => onApprove(item)}>
+                    <Check size={14} />
+                  </button>
+                  <button className="btn-reject" onClick={() => onReject(item)}>
+                    <XIcon size={14} />
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 type AdminTab = "reimbursements" | "projects" | "requesters";
-type StatusFilter = "Pending" | "Approved" | "Rejected" | "All";
+type StatusFilter = "Unprocessed" | "Processed" | "All";
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
@@ -65,10 +161,11 @@ export default function AdminPage() {
   const [adminTab, setAdminTab] = useState<AdminTab>("reimbursements");
 
   // Reimbursements state
-  const [rows, setRows] = useState<ReimbursementRow[]>([]);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Pending");
+  const [groups, setGroups] = useState<ReimbursementGroup[]>([]);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Unprocessed");
   const [search, setSearch] = useState("");
-  const [reviewTarget, setReviewTarget] = useState<ReimbursementRow | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
+  const [reviewTarget, setReviewTarget] = useState<ReimbursementItem | null>(null);
   const [reviewAction, setReviewAction] = useState<"Approved" | "Rejected">("Approved");
   const [reviewMessage, setReviewMessage] = useState("");
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -83,9 +180,8 @@ export default function AdminPage() {
   const [requesterError, setRequesterError] = useState("");
   const [requesterLoading, setRequesterLoading] = useState(false);
 
-  // Load data
   async function loadData() {
-    const json = await fetch("/api/init").then((res) => res.json());
+    const json = await fetch("/api/admin/init").then((res) => res.json());
     if (json.error) {
       window.location.href = "/login";
       return;
@@ -95,7 +191,7 @@ export default function AdminPage() {
       return;
     }
     setUser(json.user);
-    setRows((json.reimbursements as ReimbursementRow[]).reverse());
+    setGroups((json.groups as ReimbursementGroup[]).reverse());
     setLoading(false);
   }
 
@@ -121,34 +217,51 @@ export default function AdminPage() {
     window.location.href = "/login";
   }
 
-  // Reimbursement helpers
+  // Filter groups: a group matches a status filter if ANY of its items match
   const filtered = useMemo(() => {
-    let result = rows;
-    if (statusFilter !== "All") {
-      result = result.filter((r) => r.status === statusFilter);
+    let result = groups;
+    if (statusFilter === "Unprocessed") {
+      result = result.filter((g) =>
+        g.reimbursements.some((r) => r.status === "Pending")
+      );
+    } else if (statusFilter === "Processed") {
+      result = result.filter((g) =>
+        g.reimbursements.every((r) => r.status !== "Pending")
+      );
     }
     if (search) {
       const lower = search.toLowerCase();
       result = result.filter(
-        (r) =>
-          r.requester.toLowerCase().includes(lower) ||
-          r.project.toLowerCase().includes(lower) ||
-          (r.description || "").toLowerCase().includes(lower) ||
-          r.group_id.toLowerCase().includes(lower)
+        (g) =>
+          g.requester.toLowerCase().includes(lower) ||
+          g.group_code.toLowerCase().includes(lower) ||
+          g.reimbursements.some(
+            (r) =>
+              r.project.toLowerCase().includes(lower) ||
+              (r.description || "").toLowerCase().includes(lower)
+          )
       );
     }
     return result;
-  }, [rows, statusFilter, search]);
+  }, [groups, statusFilter, search]);
 
   const statusCounts = {
-    Pending: rows.filter((r) => r.status === "Pending").length,
-    Approved: rows.filter((r) => r.status === "Approved").length,
-    Rejected: rows.filter((r) => r.status === "Rejected").length,
-    All: rows.length,
+    Unprocessed: groups.filter((g) => g.reimbursements.some((r) => r.status === "Pending")).length,
+    Processed: groups.filter((g) => g.reimbursements.every((r) => r.status !== "Pending")).length,
+    All: groups.length,
   };
 
-  function openReview(row: ReimbursementRow, action: "Approved" | "Rejected") {
-    setReviewTarget(row);
+  function toggleExpand(groupId: number) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }
+
+  function openReview(item: ReimbursementItem, action: "Approved" | "Rejected") {
+    setReviewTarget(item);
     setReviewAction(action);
     setReviewMessage("");
   }
@@ -172,14 +285,34 @@ export default function AdminPage() {
     setReviewLoading(false);
   }
 
-  async function deleteReimbursement(row: ReimbursementRow) {
-    if (!confirm(`Delete reimbursement from ${row.requester} — "${row.description}" (${formatAmount(row.amount)})?`)) return;
+  async function deleteGroup(group: ReimbursementGroup) {
+    const totalAmount = group.reimbursements.reduce((s, r) => s + r.amount, 0);
+    if (
+      !confirm(
+        `Delete entire group ${group.group_code} from ${group.requester} (${group.reimbursements.length} items, ${formatAmount(totalAmount)})?`
+      )
+    )
+      return;
     await fetch("/api/admin/review", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: row.id }),
+      body: JSON.stringify({ groupId: group.id }),
     });
     await loadData();
+  }
+
+  async function notifyRequester(group: ReimbursementGroup) {
+    const resp = await fetch("/api/admin/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groupId: group.id }),
+    });
+    if (resp.ok) {
+      await loadData();
+    } else {
+      const json = await resp.json();
+      alert("Failed to notify: " + json.error);
+    }
   }
 
   // Project helpers
@@ -236,9 +369,6 @@ export default function AdminPage() {
     await loadRequesters();
   }
 
-  function formatAmount(amount: number): string {
-    return "Rp" + amount.toLocaleString("id-ID");
-  }
 
   if (loading) {
     return (
@@ -301,7 +431,7 @@ export default function AdminPage() {
       {adminTab === "reimbursements" && (
         <div className="admin-container">
           <div className="admin-tabs">
-            {(["Pending", "Approved", "Rejected", "All"] as StatusFilter[]).map((t) => (
+            {(["Unprocessed", "Processed", "All"] as StatusFilter[]).map((t) => (
               <button
                 key={t}
                 className={`admin-tab ${statusFilter === t ? "active" : ""}`}
@@ -321,88 +451,69 @@ export default function AdminPage() {
             />
           </div>
 
-          <div className="dt-layout-table">
-            <table id="reimbursementTable">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Requester</th>
-                  <th>Project</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Proof</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center" }}>
-                      No reimbursements found
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((r) => (
-                    <tr key={r.id}>
-                      <td>{formatDate(r.expense_date)}</td>
-                      <td>{r.requester}</td>
-                      <td>{r.project}</td>
-                      <td className="admin-desc">{r.description}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>{formatAmount(r.amount)}</td>
-                      <td>
-                        {r.proof_files?.length > 0 ? (
-                          <div className="detail-files">
-                            {r.proof_files.map((f) => (
-                              <a
-                                key={f.id}
-                                href={f.public_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="proof-link"
-                              >
-                                <ExternalLink size={14} /> {f.file_name}
-                              </a>
-                            ))}
-                          </div>
-                        ) : r.proof_url ? (
-                          <a href={r.proof_url} target="_blank" rel="noopener noreferrer" className="proof-link">
-                            <ExternalLink size={14} /> View
-                          </a>
-                        ) : null}
-                      </td>
-                      <td>
-                        <span className={`approvalStatus ${r.status.toLowerCase()}`}>{r.status}</span>
-                      </td>
-                      <td className="admin-actions">
-                        {r.status === "Pending" ? (
-                          <>
-                            <button className="btn-approve" onClick={() => openReview(r, "Approved")}>
-                              <Check size={14} /> Approve
-                            </button>
-                            <button className="btn-reject" onClick={() => openReview(r, "Rejected")}>
-                              <XIcon size={14} /> Reject
-                            </button>
-                          </>
-                        ) : (
-                          <span className="admin-reviewed-info">
-                            {r.reviewed_by && (
-                              <span>
-                                by {r.reviewed_by}
-                                {r.review_message && <> &mdash; &quot;{r.review_message}&quot;</>}
-                              </span>
-                            )}
-                          </span>
-                        )}
-                        <button className="btn-delete" onClick={() => deleteReimbursement(r)} title="Delete">
+          {/* Header */}
+          <div className="list-header">
+            <div className="col col-chevron"></div>
+            <div className="col col-name">Group ID</div>
+            <div className="col col-date">Submitted</div>
+            <div className="col col-files hide-mobile">Requester</div>
+            <div className="col col-amount">Approved Total</div>
+            <div className="col col-status">Items</div>
+            <div className="col col-actions"></div>
+          </div>
+
+          {/* Rows */}
+          <div className="list-body">
+            {filtered.length === 0 ? (
+              <div className="list-empty">No reimbursements found</div>
+            ) : (
+              filtered.map((g) => {
+                const isExpanded = expandedGroups.has(g.id);
+                const approvedTotal = g.reimbursements
+                  .filter((r) => r.status === "Approved")
+                  .reduce((s, r) => s + r.amount, 0);
+
+                return (
+                  <div key={g.id} className="group-block">
+                    <div
+                      className={`group-row ${isExpanded ? "expanded" : ""}`}
+                      onClick={() => toggleExpand(g.id)}
+                    >
+                      <div className="col col-chevron">
+                        <ChevronRight size={16} className="chevron-icon" />
+                      </div>
+                      <div className="col col-name">
+                        <span className="group-code">{g.group_code}</span>
+                      </div>
+                      <div className="col col-date">
+                        {new Date(g.created_at).toLocaleDateString("en-GB", { timeZone: "Asia/Jakarta" })}
+                      </div>
+                      <div className="col col-files hide-mobile">
+                        <strong>{g.requester}</strong>
+                      </div>
+                      <div className="col col-amount">
+                        {approvedTotal > 0 ? formatAmount(approvedTotal) : "-"}
+                      </div>
+                      <div className="col col-status">
+                        {g.reimbursements.length} item{g.reimbursements.length !== 1 ? "s" : ""}
+                      </div>
+                      <div className="col col-actions" onClick={(e) => e.stopPropagation()}>
+                        <button className="btn-delete" onClick={() => deleteGroup(g)} title="Delete group">
                           <Trash2 size={14} />
                         </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+
+                    <AdminCollapsibleItems
+                      items={g.reimbursements}
+                      isOpen={isExpanded}
+                      onApprove={(item) => openReview(item, "Approved")}
+                      onReject={(item) => openReview(item, "Rejected")}
+                    />
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}
@@ -516,11 +627,9 @@ export default function AdminPage() {
       {reviewTarget && (
         <div className="modal-overlay" onClick={() => setReviewTarget(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>{reviewAction === "Approved" ? "Approve" : "Reject"} Reimbursement</h3>
+            <h3>{reviewAction === "Approved" ? "Approve" : "Reject"} Item</h3>
             <div className="modal-details">
-              <p>
-                <strong>{reviewTarget.requester}</strong> &mdash; {reviewTarget.project}
-              </p>
+              <p><strong>{reviewTarget.project}</strong></p>
               <p>{reviewTarget.description}</p>
               <p className="detail-amount">{formatAmount(reviewTarget.amount)}</p>
             </div>

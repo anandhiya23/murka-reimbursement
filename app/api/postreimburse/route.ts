@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const approver = formData.get("approver") as string;
     const items: ExpenseItem[] = JSON.parse(formData.get("items") as string);
 
-    // Resolve requester from logged-in user's email — must exist in requesters table
+    // Resolve requester from logged-in user's email
     const userEmail = user.email || "";
     const { data: requesterData } = await supabase
       .from("requesters")
@@ -61,21 +61,36 @@ export async function POST(request: Request) {
     const requester = requesterData.name;
     const requesterEmail = requesterData.email;
 
-    // Generate group ID
-    // Get current max group count from reimbursements to stay consistent
+    // Generate group code
     const datePrefix = getYYMMDD();
     const { count } = await supabase
-      .from("reimbursements")
+      .from("reimbursement_groups")
       .select("*", { count: "exact", head: true })
-      .like("group_id", `#${datePrefix}-%`);
+      .like("group_code", `#${datePrefix}-%`);
     const groupNum = (count || 0) + 1;
-    const groupId = `#${datePrefix}-${groupNum}`;
+    const groupCode = `#${datePrefix}-${groupNum}`;
 
-    // Collect files grouped by item index
-    const filesByItem = new Map<number, { name: string; type: string; buffer: ArrayBuffer }[]>();
+    // 1. Create the group
+    const { data: group, error: groupError } = await supabase
+      .from("reimbursement_groups")
+      .insert({
+        group_code: groupCode,
+        requester,
+        requester_email: requesterEmail,
+        approver,
+      })
+      .select("id")
+      .single();
+
+    if (groupError) throw groupError;
+
+    // 2. Collect files grouped by item index
+    const filesByItem = new Map<
+      number,
+      { name: string; type: string; buffer: ArrayBuffer }[]
+    >();
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
-        // key format: items[0]files, items[1]files, etc.
         const match = key.match(/items\[(\d+)\]files/);
         if (match) {
           const idx = parseInt(match[1], 10);
@@ -89,7 +104,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Upload files to Supabase Storage, track per item
+    // 3. Upload files to Supabase Storage
     const uploadedByItem: { path: string; name: string; url: string }[][] = [];
 
     for (let i = 0; i < items.length; i++) {
@@ -127,7 +142,7 @@ export async function POST(request: Request) {
       uploadedByItem.push(uploaded);
     }
 
-    // Insert reimbursement rows and get IDs back
+    // 4. Insert reimbursement items linked to group
     const rows = items.map((item, i) => ({
       requester,
       project: item.project,
@@ -137,7 +152,8 @@ export async function POST(request: Request) {
       proof_url: uploadedByItem[i][0]?.url || "",
       approver,
       status: "Pending",
-      group_id: groupId,
+      group_id: groupCode,
+      group_id_fk: group.id,
       requester_email: requesterEmail,
     }));
 
@@ -148,7 +164,7 @@ export async function POST(request: Request) {
 
     if (insertError) throw insertError;
 
-    // Insert proof_files for each reimbursement
+    // 5. Insert proof_files for each reimbursement
     const proofFileRows = insertedRows.flatMap((row, i) =>
       uploadedByItem[i].map((file) => ({
         reimbursement_id: row.id,

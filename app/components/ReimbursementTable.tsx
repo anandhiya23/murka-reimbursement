@@ -1,44 +1,152 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ExternalLink,
+} from "lucide-react";
 import { formatDate } from "@/lib/format";
 
-interface ReimbursementRow {
-  requester: string;
+interface ProofFile {
+  id: number;
+  file_name: string;
+  public_url: string;
+}
+
+interface ReimbursementItem {
+  id: number;
   project: string;
   expense_date: string;
   description: string;
+  amount: number;
   status: string;
+  proof_url: string;
+  proof_files: ProofFile[];
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_message: string | null;
 }
 
-interface ReimbursementTableProps<T extends ReimbursementRow = ReimbursementRow> {
-  rows: T[];
-  userRequesterName?: string;
-  onRowClick?: (row: T) => void;
+interface ReimbursementGroup {
+  id: number;
+  group_code: string;
+  requester: string;
+  requester_email: string;
+  approver: string;
+  created_at: string;
+  reimbursements: ReimbursementItem[];
 }
 
-export default function ReimbursementTable<T extends ReimbursementRow>({
-  rows,
-  userRequesterName,
-  onRowClick,
-}: ReimbursementTableProps<T>) {
+interface ReimbursementTableProps {
+  groups: ReimbursementGroup[];
+}
+
+function formatAmount(amount: number): string {
+  return "Rp" + amount.toLocaleString("id-ID");
+}
+
+function CollapsibleItems({
+  items,
+  isOpen,
+}: {
+  items: ReimbursementItem[];
+  isOpen: boolean;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight);
+    }
+  }, [items, isOpen]);
+
+  return (
+    <div
+      className="collapse-wrapper"
+      style={{ height: isOpen ? height : 0, opacity: isOpen ? 1 : 0 }}
+    >
+      <div ref={contentRef} className="collapse-content">
+        {items.map((item) => (
+          <div key={item.id} className="sub-row">
+            <div className="col col-chevron"></div>
+            <div className="col col-name">
+              <span className="sub-project">{item.project}</span>
+              {item.description && (
+                <span className="sub-desc">{item.description}</span>
+              )}
+              {item.reviewed_by && (
+                <span className="sub-review">
+                  Reviewed by {item.reviewed_by}
+                  {item.review_message && (
+                    <> &mdash; &quot;{item.review_message}&quot;</>
+                  )}
+                </span>
+              )}
+            </div>
+            <div className="col col-date">{formatDate(item.expense_date)}</div>
+            <div className="col col-files hide-mobile">
+              {item.proof_files?.length > 0
+                ? item.proof_files.map((f) => (
+                    <a
+                      key={f.id}
+                      href={f.public_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="proof-link"
+                    >
+                      <ExternalLink size={12} /> <span className="proof-name">{f.file_name}</span>
+                    </a>
+                  ))
+                : item.proof_url ? (
+                  <a
+                    href={item.proof_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="proof-link"
+                  >
+                    <ExternalLink size={12} /> View file
+                  </a>
+                ) : null}
+            </div>
+            <div className="col col-amount sub-amount">{formatAmount(item.amount)}</div>
+            <div className="col col-status">
+              <span className={`approvalStatus ${item.status.toLowerCase()}`}>
+                {item.status}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function ReimbursementTable({
+  groups,
+}: ReimbursementTableProps) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
 
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    if (!search) return groups;
     const lower = search.toLowerCase();
-    return rows.filter(
-      (r) =>
-        r.requester.toLowerCase().includes(lower) ||
-        r.project.toLowerCase().includes(lower) ||
-        r.expense_date.toLowerCase().includes(lower) ||
-        (r.description || "").toLowerCase().includes(lower) ||
-        r.status.toLowerCase().includes(lower)
+    return groups.filter(
+      (g) =>
+        g.group_code.toLowerCase().includes(lower) ||
+        g.approver.toLowerCase().includes(lower) ||
+        g.reimbursements.some(
+          (r) =>
+            r.project.toLowerCase().includes(lower) ||
+            (r.description || "").toLowerCase().includes(lower)
+        )
     );
-  }, [rows, search]);
+  }, [groups, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safeCurrentPage = Math.min(page, totalPages - 1);
@@ -50,8 +158,57 @@ export default function ReimbursementTable<T extends ReimbursementRow>({
   const start = filtered.length === 0 ? 0 : safeCurrentPage * pageSize + 1;
   const end = Math.min((safeCurrentPage + 1) * pageSize, filtered.length);
 
+  function toggleExpand(groupId: number) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }
+
+  function getApprovedTotal(items: ReimbursementItem[]): number {
+    return items
+      .filter((i) => i.status === "Approved")
+      .reduce((sum, i) => sum + i.amount, 0);
+  }
+
+  function renderPages() {
+    const pages: (number | "...")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 0; i < totalPages; i++) pages.push(i);
+    } else {
+      pages.push(0);
+      if (safeCurrentPage > 2) pages.push("...");
+      for (
+        let i = Math.max(1, safeCurrentPage - 1);
+        i <= Math.min(totalPages - 2, safeCurrentPage + 1);
+        i++
+      ) {
+        pages.push(i);
+      }
+      if (safeCurrentPage < totalPages - 3) pages.push("...");
+      pages.push(totalPages - 1);
+    }
+    return pages.map((p, idx) =>
+      p === "..." ? (
+        <span key={`ellipsis-${idx}`} className="dt-ellipsis">
+          ...
+        </span>
+      ) : (
+        <button
+          key={p}
+          className={p === safeCurrentPage ? "active" : ""}
+          onClick={() => setPage(p)}
+        >
+          {p + 1}
+        </button>
+      )
+    );
+  }
+
   return (
-    <div className="table-container">
+    <div className="list-container">
       <div className="dt-controls">
         <div>
           Show{" "}
@@ -82,120 +239,81 @@ export default function ReimbursementTable<T extends ReimbursementRow>({
         </div>
       </div>
 
-      <div className="dt-layout-table">
-        <table id="reimbursementTable">
-          <thead>
-            <tr>
-              <th>Requester</th>
-              <th>Project</th>
-              <th className="hide-mobile">Date</th>
-              <th className="hide-mobile">Description</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paged.length === 0 ? (
-              <tr>
-                <td colSpan={5} style={{ textAlign: "center" }}>
-                  No data available
-                </td>
-              </tr>
-            ) : (
-              paged.map((r, i) => {
-                const isOwn =
-                  userRequesterName && r.requester === userRequesterName;
-                return (
-                  <tr
-                    key={`${safeCurrentPage}-${i}`}
-                    className={isOwn ? "own-row" : ""}
-                    onClick={() => isOwn && onRowClick?.(r)}
-                    style={isOwn ? { cursor: "pointer" } : undefined}
-                  >
-                    <td>{r.requester}</td>
-                    <td>{r.project}</td>
-                    <td className="hide-mobile">{formatDate(r.expense_date)}</td>
-                    <td className="hide-mobile">{r.description}</td>
-                    <td className="td-text-center">
-                      <span
-                        className={`approvalStatus ${r.status.toLowerCase()}`}
-                      >
-                        {r.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+      {/* Header */}
+      <div className="list-header">
+        <div className="col col-chevron"></div>
+        <div className="col col-name">Group ID</div>
+        <div className="col col-date">Submitted</div>
+        <div className="col col-files hide-mobile">Approver</div>
+        <div className="col col-amount">Approved Total</div>
+        <div className="col col-status">Items</div>
       </div>
 
+      {/* Rows */}
+      <div className="list-body">
+        {paged.length === 0 ? (
+          <div className="list-empty">No reimbursements yet</div>
+        ) : (
+          paged.map((g) => {
+            const isExpanded = expandedGroups.has(g.id);
+            const approvedTotal = getApprovedTotal(g.reimbursements);
+
+            return (
+              <div key={g.id} className="group-block">
+                <div
+                  className={`group-row ${isExpanded ? "expanded" : ""}`}
+                  onClick={() => toggleExpand(g.id)}
+                >
+                  <div className="col col-chevron">
+                    <ChevronRight size={16} className="chevron-icon" />
+                  </div>
+                  <div className="col col-name">
+                    <span className="group-code">{g.group_code}</span>
+                  </div>
+                  <div className="col col-date">
+                    {new Date(g.created_at).toLocaleDateString("en-GB", {
+                      timeZone: "Asia/Jakarta",
+                    })}
+                  </div>
+                  <div className="col col-files hide-mobile">
+                    {g.approver}
+                  </div>
+                  <div className="col col-amount">
+                    {approvedTotal > 0 ? formatAmount(approvedTotal) : "-"}
+                  </div>
+                  <div className="col col-status">
+                    {g.reimbursements.length} item
+                    {g.reimbursements.length !== 1 ? "s" : ""}
+                  </div>
+                </div>
+
+                <CollapsibleItems
+                  items={g.reimbursements}
+                  isOpen={isExpanded}
+                />
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Pagination */}
       <div className="dt-controls dt-bottom">
         <div className="dt-info">
           Showing {start} to {end} of {filtered.length}
         </div>
         <div className="dt-pagination">
-          <button
-            disabled={safeCurrentPage === 0}
-            onClick={() => setPage(0)}
-            title="First page"
-          >
+          <button disabled={safeCurrentPage === 0} onClick={() => setPage(0)} title="First">
             <ChevronsLeft size={16} />
           </button>
-          <button
-            disabled={safeCurrentPage === 0}
-            onClick={() => setPage((p) => p - 1)}
-            title="Previous page"
-          >
+          <button disabled={safeCurrentPage === 0} onClick={() => setPage((p) => p - 1)} title="Previous">
             <ChevronLeft size={16} />
           </button>
-
-          {(() => {
-            const pages: (number | "...")[] = [];
-            if (totalPages <= 7) {
-              for (let i = 0; i < totalPages; i++) pages.push(i);
-            } else {
-              pages.push(0);
-              if (safeCurrentPage > 2) pages.push("...");
-              for (
-                let i = Math.max(1, safeCurrentPage - 1);
-                i <= Math.min(totalPages - 2, safeCurrentPage + 1);
-                i++
-              ) {
-                pages.push(i);
-              }
-              if (safeCurrentPage < totalPages - 3) pages.push("...");
-              pages.push(totalPages - 1);
-            }
-            return pages.map((p, idx) =>
-              p === "..." ? (
-                <span key={`ellipsis-${idx}`} className="dt-ellipsis">
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={p}
-                  className={p === safeCurrentPage ? "active" : ""}
-                  onClick={() => setPage(p)}
-                >
-                  {p + 1}
-                </button>
-              )
-            );
-          })()}
-
-          <button
-            disabled={safeCurrentPage >= totalPages - 1}
-            onClick={() => setPage((p) => p + 1)}
-            title="Next page"
-          >
+          {renderPages()}
+          <button disabled={safeCurrentPage >= totalPages - 1} onClick={() => setPage((p) => p + 1)} title="Next">
             <ChevronRight size={16} />
           </button>
-          <button
-            disabled={safeCurrentPage >= totalPages - 1}
-            onClick={() => setPage(totalPages - 1)}
-            title="Last page"
-          >
+          <button disabled={safeCurrentPage >= totalPages - 1} onClick={() => setPage(totalPages - 1)} title="Last">
             <ChevronsRight size={16} />
           </button>
         </div>

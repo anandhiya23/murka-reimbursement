@@ -133,6 +133,18 @@ body {
   text-decoration: underline;
   font-weight: 600;
   font-size: 0.8rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.proof-link svg {
+  flex-shrink: 0;
+}
+
+.proof-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .proof-link:hover {
@@ -397,72 +409,134 @@ span.approvalStatus.rejected {
   color: #fff;
 }
 
-/* ========== Data Table ========== */
-.table-container {
+/* ========== List (div-based table replacement) ========== */
+.list-container {
   background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   padding: 1.25em;
 }
 
-#reimbursementTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
+/* ---- Column widths (shared by header, group-row, sub-row) ---- */
+.col { padding: 0 0.5em; box-sizing: border-box; }
+.col-chevron { width: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.col-name    { width: 35%; }
+.col-date    { width: 12%; }
+.col-files   { width: 20%; }
+.col-amount  { width: 18%; }
+.col-status  { width: 15%; }
+.col-actions { width: 80px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; gap: 0.3em; }
 
-#reimbursementTable thead {
-  background: transparent;
-  color: var(--text-muted);
-}
-
-#reimbursementTable thead th {
-  padding: 0.6em 0.85em;
-  text-align: left;
-  font-weight: 500;
+.list-header {
+  display: flex;
+  align-items: center;
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--border);
   font-size: 0.75rem;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border);
   color: var(--text-light);
 }
 
-#reimbursementTable thead th:nth-child(odd) {
-  background: transparent;
+.list-body {
+  font-size: 0.85rem;
 }
 
-#reimbursementTable tbody tr {
+.list-empty {
+  text-align: center;
+  padding: 2em;
+  color: var(--text-light);
+}
+
+/* Group block */
+.group-block {
   border-bottom: 1px solid var(--border-light);
-  transition: background var(--transition);
 }
 
-#reimbursementTable tbody tr:last-child {
+.group-block:last-child {
   border-bottom: none;
 }
 
-#reimbursementTable tbody tr:hover {
+.group-row {
+  display: flex;
+  align-items: center;
+  padding: 0.65em 0;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.group-row:hover {
   background: var(--bg);
 }
 
-#reimbursementTable td {
-  padding: 0.65em 0.85em;
+/* Chevron animation */
+.chevron-icon {
+  transition: transform 0.2s ease;
+  color: var(--text-light);
+}
+
+.group-row.expanded .chevron-icon {
+  transform: rotate(90deg);
+}
+
+/* Collapsible items */
+.collapse-wrapper {
+  overflow: hidden;
+  transition: height 0.25s ease, opacity 0.2s ease;
+}
+
+.collapse-content {
+  border-left: 3px solid var(--accent);
+}
+
+/* Sub-item rows */
+.sub-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.sub-row:last-child {
+  border-bottom: none;
+}
+
+.sub-row .col-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+}
+
+.sub-project {
+  font-weight: 600;
   color: var(--text);
 }
 
-#reimbursementTable tbody tr.own-row {
-  background-color: #f8fce8;
+.sub-desc {
+  font-size: 0.75rem;
+  color: var(--text-light);
 }
 
-#reimbursementTable tbody tr.own-row:hover {
-  background-color: #f2f9d6;
+.sub-review {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  font-style: italic;
 }
 
-.td-text-center {
-  text-align: center;
+.sub-row .col-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.dt-layout-table {
-  overflow-x: auto;
+.sub-amount {
+  font-weight: 600;
+  color: var(--text);
 }
 
 /* Table Controls */
@@ -554,88 +628,20 @@ span.approvalStatus.rejected {
   user-select: none;
 }
 
-/* ========== Detail Panel ========== */
-.detail-panel {
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  padding: 1.5em;
-}
-
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25em;
-}
-
-.detail-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.detail-close {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  padding: 0.2em 0.55em;
-  cursor: pointer;
-  font-size: 0.9rem;
+.group-code {
+  font-family: monospace;
+  font-size: 0.8rem;
   color: var(--text-muted);
-  width: auto;
-  margin-top: 0;
-  transition: all var(--transition);
-}
-
-.detail-close:hover {
   background: var(--bg);
-  border-color: var(--text-light);
+  padding: 0.15em 0.5em;
+  border-radius: 4px;
 }
 
-.detail-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6em;
-}
-
-.detail-row {
-  display: flex;
-  gap: 1em;
-  align-items: baseline;
-  font-size: 0.85rem;
-}
-
-.detail-label {
-  font-weight: 500;
-  font-size: 0.75rem;
-  min-width: 110px;
-  color: var(--text-light);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
+/* ========== Misc ========== */
 .detail-amount {
   font-weight: 700;
   font-size: 1rem;
   color: var(--text);
-}
-
-.detail-files {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3em;
-}
-
-.detail-body a {
-  color: var(--text);
-  font-weight: 600;
-  text-decoration: underline;
-}
-
-.detail-body a:hover {
-  text-decoration: underline;
 }
 
 /* ========== Login Page ========== */
@@ -843,6 +849,35 @@ span.approvalStatus.rejected {
 .btn-reject:hover {
   background: #fef2f2;
   border-color: #ef4444;
+}
+
+.btn-notify {
+  background: var(--accent);
+  color: var(--accent-text);
+  border: none;
+  padding: 0.35em 0.75em;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  width: auto;
+  margin-top: 0;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.btn-notify:hover {
+  background: var(--accent-hover);
+}
+
+.notified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: 0.75rem;
+  color: var(--text-light);
 }
 
 .btn-delete {
@@ -1068,6 +1103,11 @@ span.approvalStatus.rejected {
   .hide-mobile {
     display: none;
   }
+
+  .col-name   { width: 40%; }
+  .col-date   { width: 18%; }
+  .col-amount { width: 24%; }
+  .col-status { width: 18%; }
 
   .main-grid {
     padding: 1em;
