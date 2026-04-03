@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Murka Reimbursement Tool",
   description: "Murka Reimbursement Portal",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

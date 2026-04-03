@@ -127,3 +127,64 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// DELETE: remove requester and their auth account
+export async function DELETE(request: Request) {
+  try {
+    const { admin } = await verifyAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { id, email } = (await request.json()) as { id: number; email: string };
+
+    if (!id || !email) {
+      return NextResponse.json(
+        { error: "id and email are required" },
+        { status: 400 }
+      );
+    }
+
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+      return NextResponse.json(
+        { error: "Server misconfigured: missing service role key" },
+        { status: 500 }
+      );
+    }
+
+    const serviceClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      serviceRoleKey
+    );
+
+    // Find the auth user by email
+    const { data: users, error: listError } =
+      await serviceClient.auth.admin.listUsers();
+    if (listError) throw listError;
+
+    const authUser = users.users.find((u) => u.email === email);
+
+    // Delete auth user if found
+    if (authUser) {
+      const { error: deleteAuthError } =
+        await serviceClient.auth.admin.deleteUser(authUser.id);
+      if (deleteAuthError) throw deleteAuthError;
+    }
+
+    // Delete from requesters table
+    const { error: deleteError } = await serviceClient
+      .from("requesters")
+      .delete()
+      .eq("id", id);
+    if (deleteError) throw deleteError;
+
+    return NextResponse.json({ status: "OK" });
+  } catch (error) {
+    console.error("Delete requester error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete requester" },
+      { status: 500 }
+    );
+  }
+}

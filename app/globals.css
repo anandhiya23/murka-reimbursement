@@ -845,6 +845,25 @@ span.approvalStatus.rejected {
   border-color: #ef4444;
 }
 
+.btn-delete {
+  background: transparent;
+  color: var(--text-light);
+  border: none;
+  padding: 0.3em;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  width: auto;
+  margin-top: 0;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-delete:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
 .btn-cancel {
   background: var(--bg);
   color: var(--text-muted);

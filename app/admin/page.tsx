@@ -14,6 +14,7 @@ import {
   Receipt,
   FolderKanban,
   Users,
+  Trash2,
 } from "lucide-react";
 import { formatDate } from "@/lib/format";
 
@@ -171,6 +172,16 @@ export default function AdminPage() {
     setReviewLoading(false);
   }
 
+  async function deleteReimbursement(row: ReimbursementRow) {
+    if (!confirm(`Delete reimbursement from ${row.requester} — "${row.description}" (${formatAmount(row.amount)})?`)) return;
+    await fetch("/api/admin/review", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: row.id }),
+    });
+    await loadData();
+  }
+
   // Project helpers
   async function addProject() {
     if (!newProjectName.trim()) return;
@@ -213,6 +224,16 @@ export default function AdminPage() {
       await loadRequesters();
     }
     setRequesterLoading(false);
+  }
+
+  async function deleteRequester(id: number, email: string, name: string) {
+    if (!confirm(`Delete user "${name}" (${email})? This removes their login and requester record.`)) return;
+    await fetch("/api/admin/requesters", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, email }),
+    });
+    await loadRequesters();
   }
 
   function formatAmount(amount: number): string {
@@ -373,6 +394,9 @@ export default function AdminPage() {
                             )}
                           </span>
                         )}
+                        <button className="btn-delete" onClick={() => deleteReimbursement(r)} title="Delete">
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -471,7 +495,17 @@ export default function AdminPage() {
                   <strong>{r.name}</strong>
                   <span className="requester-email">{r.email}</span>
                 </div>
-                {r.is_admin && <span className="header-badge">Admin</span>}
+                <div className="admin-actions">
+                  {r.is_admin && <span className="header-badge">Admin</span>}
+                  {!r.is_admin && (
+                    <button
+                      className="btn-reject"
+                      onClick={() => deleteRequester(r.id, r.email, r.name)}
+                    >
+                      <XIcon size={14} /> Delete
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
