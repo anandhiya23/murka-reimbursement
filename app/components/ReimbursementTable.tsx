@@ -1,20 +1,28 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { formatDate } from "@/lib/format";
 
 interface ReimbursementRow {
   requester: string;
   project: string;
-  date: string;
+  expense_date: string;
   description: string;
   status: string;
 }
 
-interface ReimbursementTableProps {
-  rows: ReimbursementRow[];
+interface ReimbursementTableProps<T extends ReimbursementRow = ReimbursementRow> {
+  rows: T[];
+  userRequesterName?: string;
+  onRowClick?: (row: T) => void;
 }
 
-export default function ReimbursementTable({ rows }: ReimbursementTableProps) {
+export default function ReimbursementTable<T extends ReimbursementRow>({
+  rows,
+  userRequesterName,
+  onRowClick,
+}: ReimbursementTableProps<T>) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
@@ -26,8 +34,8 @@ export default function ReimbursementTable({ rows }: ReimbursementTableProps) {
       (r) =>
         r.requester.toLowerCase().includes(lower) ||
         r.project.toLowerCase().includes(lower) ||
-        r.date.toLowerCase().includes(lower) ||
-        r.description.toLowerCase().includes(lower) ||
+        r.expense_date.toLowerCase().includes(lower) ||
+        (r.description || "").toLowerCase().includes(lower) ||
         r.status.toLowerCase().includes(lower)
     );
   }, [rows, search]);
@@ -80,8 +88,8 @@ export default function ReimbursementTable({ rows }: ReimbursementTableProps) {
             <tr>
               <th>Requester</th>
               <th>Project</th>
-              <th>Date</th>
-              <th>Description</th>
+              <th className="hide-mobile">Date</th>
+              <th className="hide-mobile">Description</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -93,51 +101,102 @@ export default function ReimbursementTable({ rows }: ReimbursementTableProps) {
                 </td>
               </tr>
             ) : (
-              paged.map((r, i) => (
-                <tr key={`${safeCurrentPage}-${i}`}>
-                  <td>{r.requester}</td>
-                  <td>{r.project}</td>
-                  <td>{r.date}</td>
-                  <td>{r.description}</td>
-                  <td className="td-text-center">
-                    <span
-                      className={`approvalStatus ${r.status.toLowerCase()}`}
-                    >
-                      {r.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
+              paged.map((r, i) => {
+                const isOwn =
+                  userRequesterName && r.requester === userRequesterName;
+                return (
+                  <tr
+                    key={`${safeCurrentPage}-${i}`}
+                    className={isOwn ? "own-row" : ""}
+                    onClick={() => isOwn && onRowClick?.(r)}
+                    style={isOwn ? { cursor: "pointer" } : undefined}
+                  >
+                    <td>{r.requester}</td>
+                    <td>{r.project}</td>
+                    <td className="hide-mobile">{formatDate(r.expense_date)}</td>
+                    <td className="hide-mobile">{r.description}</td>
+                    <td className="td-text-center">
+                      <span
+                        className={`approvalStatus ${r.status.toLowerCase()}`}
+                      >
+                        {r.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
       <div className="dt-controls dt-bottom">
-        <div>
-          Showing {start} to {end} of {filtered.length} entries
+        <div className="dt-info">
+          Showing {start} to {end} of {filtered.length}
         </div>
         <div className="dt-pagination">
           <button
             disabled={safeCurrentPage === 0}
-            onClick={() => setPage((p) => p - 1)}
+            onClick={() => setPage(0)}
+            title="First page"
           >
-            Previous
+            <ChevronsLeft size={16} />
           </button>
-          {Array.from({ length: totalPages }, (_, i) => (
-            <button
-              key={i}
-              className={i === safeCurrentPage ? "active" : ""}
-              onClick={() => setPage(i)}
-            >
-              {i + 1}
-            </button>
-          ))}
+          <button
+            disabled={safeCurrentPage === 0}
+            onClick={() => setPage((p) => p - 1)}
+            title="Previous page"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          {(() => {
+            const pages: (number | "...")[] = [];
+            if (totalPages <= 7) {
+              for (let i = 0; i < totalPages; i++) pages.push(i);
+            } else {
+              pages.push(0);
+              if (safeCurrentPage > 2) pages.push("...");
+              for (
+                let i = Math.max(1, safeCurrentPage - 1);
+                i <= Math.min(totalPages - 2, safeCurrentPage + 1);
+                i++
+              ) {
+                pages.push(i);
+              }
+              if (safeCurrentPage < totalPages - 3) pages.push("...");
+              pages.push(totalPages - 1);
+            }
+            return pages.map((p, idx) =>
+              p === "..." ? (
+                <span key={`ellipsis-${idx}`} className="dt-ellipsis">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  className={p === safeCurrentPage ? "active" : ""}
+                  onClick={() => setPage(p)}
+                >
+                  {p + 1}
+                </button>
+              )
+            );
+          })()}
+
           <button
             disabled={safeCurrentPage >= totalPages - 1}
             onClick={() => setPage((p) => p + 1)}
+            title="Next page"
           >
-            Next
+            <ChevronRight size={16} />
+          </button>
+          <button
+            disabled={safeCurrentPage >= totalPages - 1}
+            onClick={() => setPage(totalPages - 1)}
+            title="Last page"
+          >
+            <ChevronsRight size={16} />
           </button>
         </div>
       </div>

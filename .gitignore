@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env.local
+
+# env json
+bintang-homelab-9ed1dd7d4328.json
 
 # vercel
 .vercel
@@ -39,3 +43,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+

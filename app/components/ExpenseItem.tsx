@@ -46,6 +46,7 @@ export default function ExpenseItem({
     <div className="expense-item">
       <label>Project</label>
       <Select
+        instanceId={`project-${index}`}
         options={projectOptions}
         value={selectedProject}
         onChange={(opt) =>
