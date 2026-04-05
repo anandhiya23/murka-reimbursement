@@ -1,29 +1,11 @@
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-
-async function verifyAdmin(supabase: ReturnType<typeof createClient>) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data } = await supabase
-    .from("requesters")
-    .select("name, is_admin")
-    .eq("email", user.email)
-    .single();
-
-  return data?.is_admin ? data : null;
-}
+import { verifyAdmin } from "@/utils/supabase/verify-admin";
 
 // GET all projects (including inactive)
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-
-    if (!(await verifyAdmin(supabase))) {
+    const { supabase, admin } = await verifyAdmin();
+    if (!admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -47,10 +29,8 @@ export async function GET() {
 // POST: add new project or toggle active status
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-
-    if (!(await verifyAdmin(supabase))) {
+    const { supabase, admin } = await verifyAdmin();
+    if (!admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

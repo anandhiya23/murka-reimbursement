@@ -1,27 +1,11 @@
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { verifyAdmin } from "@/utils/supabase/verify-admin";
+import { fetchReviewGroup, sendReviewEmail } from "@/lib/send-review-email";
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // Check admin status from requesters table
-    const { data: adminData } = await supabase
-      .from("requesters")
-      .select("name, is_admin")
-      .eq("email", user.email)
-      .single();
-
-    if (!adminData?.is_admin) {
+    const { supabase, admin: adminData } = await verifyAdmin();
+    if (!adminData) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -39,7 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: updateError } = await supabase
+    const { data: updatedItem, error: updateError } = await supabase
       .from("reimbursements")
       .update({
         status: action,
@@ -47,11 +31,35 @@ export async function POST(request: Request) {
         reviewed_at: new Date().toISOString(),
         review_message: message || null,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .select("group_id_fk")
+      .single();
 
     if (updateError) throw updateError;
 
-    return NextResponse.json({ status: "OK" });
+    // Auto-notify when all items in the group are processed
+    let emailTriggered = false;
+    let emailError: string | undefined;
+
+    if (updatedItem?.group_id_fk) {
+      try {
+        const group = await fetchReviewGroup(supabase, updatedItem.group_id_fk);
+        const allProcessed =
+          group.reimbursements.length > 0 &&
+          group.reimbursements.every((r) => r.status !== "Pending");
+
+        if (allProcessed && !group.notified_at) {
+          emailTriggered = true;
+          await sendReviewEmail(supabase, group);
+        }
+      } catch (emailErr) {
+        // Don't fail the review if auto-notify fails — log and continue
+        console.error("Auto-notify failed:", emailErr);
+        emailError = emailErr instanceof Error ? emailErr.message : "Failed to send email";
+      }
+    }
+
+    return NextResponse.json({ status: "OK", emailTriggered, emailError });
   } catch (error) {
     console.error("Admin review error:", error);
     return NextResponse.json(
@@ -63,23 +71,8 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const { data: adminData } = await supabase
-      .from("requesters")
-      .select("is_admin")
-      .eq("email", user.email)
-      .single();
-
-    if (!adminData?.is_admin) {
+    const { supabase, admin } = await verifyAdmin();
+    if (!admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

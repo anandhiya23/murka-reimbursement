@@ -1,24 +1,6 @@
-import { createClient } from "@/utils/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-
-async function verifyAdmin() {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, admin: null };
-
-  const { data } = await supabase
-    .from("requesters")
-    .select("name, is_admin")
-    .eq("email", user.email)
-    .single();
-
-  return { supabase, admin: data?.is_admin ? data : null };
-}
+import { verifyAdmin } from "@/utils/supabase/verify-admin";
 
 // GET all requesters
 export async function GET() {

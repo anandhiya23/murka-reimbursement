@@ -18,8 +18,10 @@ import {
   ChevronRight,
   Menu,
   X,
+  Mail,
+  AlertCircle,
 } from "lucide-react";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatSubmittedDate } from "@/lib/format";
 
 interface ProofFile {
   id: number;
@@ -94,7 +96,7 @@ function AdminCollapsibleItems({
     if (contentRef.current) {
       setHeight(contentRef.current.scrollHeight);
     }
-  }, [items, isOpen]);
+  }, [isOpen]);
 
   return (
     <div
@@ -175,12 +177,24 @@ export default function AdminPage() {
   // Reimbursements state
   const [groups, setGroups] = useState<ReimbursementGroup[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Unprocessed");
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
   const [reviewTarget, setReviewTarget] = useState<ReimbursementItem | null>(null);
   const [reviewAction, setReviewAction] = useState<"Approved" | "Rejected">("Approved");
   const [reviewMessage, setReviewMessage] = useState("");
   const [reviewLoading, setReviewLoading] = useState(false);
+
+  // Toast notifications
+  interface Toast { id: number; type: "info" | "success" | "error"; message: string; }
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+
+  function addToast(type: Toast["type"], message: string) {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000);
+  }
 
   // Projects state
   const [projects, setProjects] = useState<Project[]>([]);
@@ -203,7 +217,7 @@ export default function AdminPage() {
       return;
     }
     setUser(json.user);
-    setGroups((json.groups as ReimbursementGroup[]).reverse());
+    setGroups(json.groups as ReimbursementGroup[]);
     setLoading(false);
   }
 
@@ -223,6 +237,11 @@ export default function AdminPage() {
     loadRequesters();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -230,17 +249,18 @@ export default function AdminPage() {
   }
 
   // Filter groups: a group matches a status filter if ANY of its items match
-  const filtered = useMemo(() => {
+  const { filtered, statusCounts } = useMemo(() => {
+    const unprocessed = groups.filter((g) =>
+      g.reimbursements.some((r) => r.status === "Pending")
+    );
+    const processed = groups.filter((g) =>
+      g.reimbursements.every((r) => r.status !== "Pending")
+    );
+
     let result = groups;
-    if (statusFilter === "Unprocessed") {
-      result = result.filter((g) =>
-        g.reimbursements.some((r) => r.status === "Pending")
-      );
-    } else if (statusFilter === "Processed") {
-      result = result.filter((g) =>
-        g.reimbursements.every((r) => r.status !== "Pending")
-      );
-    }
+    if (statusFilter === "Unprocessed") result = unprocessed;
+    else if (statusFilter === "Processed") result = processed;
+
     if (search) {
       const lower = search.toLowerCase();
       result = result.filter(
@@ -254,14 +274,16 @@ export default function AdminPage() {
           )
       );
     }
-    return result;
-  }, [groups, statusFilter, search]);
 
-  const statusCounts = {
-    Unprocessed: groups.filter((g) => g.reimbursements.some((r) => r.status === "Pending")).length,
-    Processed: groups.filter((g) => g.reimbursements.every((r) => r.status !== "Pending")).length,
-    All: groups.length,
-  };
+    return {
+      filtered: result,
+      statusCounts: {
+        Unprocessed: unprocessed.length,
+        Processed: processed.length,
+        All: groups.length,
+      },
+    };
+  }, [groups, statusFilter, search]);
 
   function toggleExpand(groupId: number) {
     setExpandedGroups((prev) => {
@@ -291,8 +313,16 @@ export default function AdminPage() {
       }),
     });
     if (resp.ok) {
+      const json = await resp.json();
       setReviewTarget(null);
       await loadData();
+      if (json.emailTriggered) {
+        if (json.emailError) {
+          addToast("error", `Email to requester failed: ${json.emailError}`);
+        } else {
+          addToast("success", "Email notification sent to requester.");
+        }
+      }
     }
     setReviewLoading(false);
   }
@@ -485,8 +515,8 @@ export default function AdminPage() {
             <input
               type="text"
               placeholder="Search by name, project, description, group ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
 
@@ -526,7 +556,7 @@ export default function AdminPage() {
                         <span className="group-code">{g.group_code}</span>
                       </div>
                       <div className="col col-date">
-                        {new Date(g.created_at).toLocaleDateString("en-GB", { timeZone: "Asia/Jakarta" })}
+                        {formatSubmittedDate(g.created_at)}
                       </div>
                       <div className="col col-files">
                         <strong>{g.requester}</strong>
@@ -661,6 +691,21 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Toast notifications */}
+      {toasts.length > 0 && (
+        <div className="toast-stack">
+          {toasts.map((t) => (
+            <div key={t.id} className={`toast toast-${t.type}`}>
+              {t.type === "success" ? <Mail size={15} /> : <AlertCircle size={15} />}
+              <span>{t.message}</span>
+              <button className="toast-close" onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}>
+                <X size={13} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

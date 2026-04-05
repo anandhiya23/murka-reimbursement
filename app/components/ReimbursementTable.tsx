@@ -8,7 +8,7 @@ import {
   ChevronsRight,
   ExternalLink,
 } from "lucide-react";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatSubmittedDate } from "@/lib/format";
 
 interface ProofFile {
   id: number;
@@ -62,7 +62,7 @@ function CollapsibleItems({
     if (contentRef.current) {
       setHeight(contentRef.current.scrollHeight);
     }
-  }, [items, isOpen]);
+  }, [isOpen]);
 
   return (
     <div
@@ -175,12 +175,6 @@ export default function ReimbursementTable({
     });
   }
 
-  function getApprovedTotal(items: ReimbursementItem[]): number {
-    return items
-      .filter((i) => i.status === "Approved")
-      .reduce((sum, i) => sum + i.amount, 0);
-  }
-
   function renderPages() {
     const pages: (number | "...")[] = [];
     if (totalPages <= 7) {
@@ -265,7 +259,10 @@ export default function ReimbursementTable({
         ) : (
           paged.map((g) => {
             const isExpanded = expandedGroups.has(g.id);
-            const approvedTotal = getApprovedTotal(g.reimbursements);
+            const approvedTotal = g.reimbursements.reduce(
+              (sum, r) => (r.status === "Approved" ? sum + r.amount : sum),
+              0
+            );
 
             return (
               <div key={g.id} className="group-block">
@@ -280,9 +277,7 @@ export default function ReimbursementTable({
                     <span className="group-code">{g.group_code}</span>
                   </div>
                   <div className="col col-date">
-                    {new Date(g.created_at).toLocaleDateString("en-GB", {
-                      timeZone: "Asia/Jakarta",
-                    })}
+                    {formatSubmittedDate(g.created_at)}
                   </div>
                   <div className="col col-files">
                     {g.approver}

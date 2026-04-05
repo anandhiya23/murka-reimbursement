@@ -61,6 +61,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [unregistered, setUnregistered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [approverOptions, setApproverOptions] = useState<Option[]>([]);
@@ -82,8 +83,7 @@ export default function Home() {
         return;
       }
       if (json.error === "Unregistered") {
-        setUser({ email: "", name: "", avatar_url: null, isAdmin: false });
-        setStatus(json.message);
+        setUnregistered(true);
         setLoading(false);
         return;
       }
@@ -167,15 +167,15 @@ export default function Home() {
         method: "POST",
         body: fd,
       });
-      await resp.json();
-
+      const json = await resp.json();
       setStatus("Submitted successfully!");
       setItems([{ ...emptyItem }]);
       fileInputsRef.current.clear();
       setApprover(savedApprover);
 
-      const json = await fetch("/api/init").then((res) => res.json());
-      setGroups((json.groups as ReimbursementGroup[]).reverse());
+      if (json.group) {
+        setGroups((prev) => [json.group as ReimbursementGroup, ...prev]);
+      }
       setLoading(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -191,6 +191,25 @@ export default function Home() {
 
   function formatAmount(amount: number): string {
     return "Rp" + amount.toLocaleString("id-ID");
+  }
+
+  if (unregistered) {
+    return (
+      <div className="login-container">
+        <div className="login-card" style={{ textAlign: "center" }}>
+          <img src="/murka-logo-dark.svg" alt="Murka" className="login-logo" />
+          <h2 style={{ marginBottom: "0.4em" }}>Access Restricted</h2>
+          <p style={{ marginBottom: "1.5em" }}>
+            Your account is not registered as a requester.
+            <br />
+            Contact an admin to get access.
+          </p>
+          <button type="button" className="sign-out-btn" style={{ width: "100%", justifyContent: "center" }} onClick={handleSignOut}>
+            <LogOut size={14} /> Sign out
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

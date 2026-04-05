@@ -11,3 +11,14 @@ export function formatDate(raw: string): string {
   if (match) return `${match[3]}/${match[2]}/${match[1]}`;
   return raw;
 }
+
+/**
+ * Format an ISO datetime string as a locale date in Jakarta timezone.
+ * Used for created_at / submitted_at timestamps.
+ */
+export function formatSubmittedDate(isoString: string): string {
+  if (!isoString) return "-";
+  return new Date(isoString).toLocaleDateString("en-GB", {
+    timeZone: "Asia/Jakarta",
+  });
+}

@@ -31,7 +31,8 @@ export async function GET() {
       .select(
         "id, group_code, requester, requester_email, approver, created_at, notified_at, reimbursements(id, project, expense_date, description, amount, proof_url, status, reviewed_by, reviewed_at, review_message, proof_files(id, file_name, public_url))"
       )
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false })
+      .limit(300);
 
     if (error) throw error;
 

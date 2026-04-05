@@ -181,7 +181,15 @@ export async function POST(request: Request) {
       if (proofError) console.error("Proof files insert error:", proofError);
     }
 
-    return NextResponse.json({ status: "OK" });
+    const { data: newGroup } = await supabase
+      .from("reimbursement_groups")
+      .select(
+        "id, group_code, requester, requester_email, approver, created_at, notified_at, reimbursements(id, project, expense_date, description, amount, proof_url, status, reviewed_by, reviewed_at, review_message, proof_files(id, file_name, public_url))"
+      )
+      .eq("id", group.id)
+      .single();
+
+    return NextResponse.json({ status: "OK", group: newGroup });
   } catch (error) {
     console.error("Error uploading/processing reimbursement:", error);
     return NextResponse.json(
