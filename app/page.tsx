@@ -282,7 +282,7 @@ export default function Home() {
 
             {totalAmount > 0 && (
               <div className="total-bar">
-                <span>Total</span>
+                <span>Total <span className="item-count">({items.length} item{items.length !== 1 ? "s" : ""})</span></span>
                 <span className="total-amount">
                   {formatAmount(totalAmount)}
                 </span>

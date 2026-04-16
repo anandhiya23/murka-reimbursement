@@ -354,6 +354,12 @@ form.loading {
   letter-spacing: -0.02em;
 }
 
+.item-count {
+  font-weight: 400;
+  opacity: 0.6;
+  font-size: 0.85em;
+}
+
 /* ========== Expense Item ========== */
 .expense-item {
   border: 1px solid var(--border);

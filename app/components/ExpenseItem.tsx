@@ -81,6 +81,7 @@ export default function ExpenseItem({
       <label>Amount (IDR)</label>
       <input
         type="text"
+        inputMode="numeric"
         className="amount"
         value={data.amount}
         onChange={(e) =>
