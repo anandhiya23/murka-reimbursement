@@ -22,6 +22,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { formatDate, formatSubmittedDate } from "@/lib/format";
+import { useToast, Toast } from "@/app/components/Toast";
 
 interface ProofFile {
   id: number;
@@ -169,6 +170,7 @@ type AdminTab = "reimbursements" | "projects" | "requesters";
 type StatusFilter = "Unprocessed" | "Processed" | "All";
 
 export default function AdminPage() {
+  const { message: toastMsg, show: showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [adminTab, setAdminTab] = useState<AdminTab>("reimbursements");
@@ -318,9 +320,10 @@ export default function AdminPage() {
       await loadData();
       if (json.emailTriggered) {
         if (json.emailError) {
-          addToast("error", `Email to requester failed: ${json.emailError}`);
+          showToast(`Email failed: ${json.emailError}`, 5000);
         } else {
-          addToast("success", "Email notification sent to requester.");
+          const code = (json.groupCode as string).replace(/^#/, "");
+          showToast(`${code} fully reviewed — sending email to ${json.requester} (${json.requesterEmail})`, 5000);
         }
       }
     }
@@ -553,7 +556,10 @@ export default function AdminPage() {
                         <ChevronRight size={16} className="chevron-icon" />
                       </div>
                       <div className="col col-name">
-                        <span className="group-code">{g.group_code}</span>
+                        <span
+                          className="group-code"
+                          onClick={(e) => { e.stopPropagation(); const code = g.group_code.replace(/^#/, ""); navigator.clipboard.writeText(code); showToast(`Copied ${code}`); }}
+                        >{g.group_code}</span>
                       </div>
                       <div className="col col-date">
                         {formatSubmittedDate(g.created_at)}
@@ -743,6 +749,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      <Toast message={toastMsg} />
     </>
   );
 }

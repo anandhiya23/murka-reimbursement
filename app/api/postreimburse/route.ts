@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { seen, remember } from "@/lib/idempotency";
 import { NextResponse } from "next/server";
+import heicConvert from "heic-convert";
 
 function getYYMMDD(): string {
   const jakarta = new Date(
@@ -11,6 +12,18 @@ function getYYMMDD(): string {
   const mm = String(jakarta.getMonth() + 1).padStart(2, "0");
   const dd = String(jakarta.getDate()).padStart(2, "0");
   return yy + mm + dd;
+}
+
+async function toJpeg(file: { name: string; type: string; buffer: ArrayBuffer }): Promise<{ name: string; type: string; buffer: Buffer }> {
+  const isHeic = file.type === "image/heic" || file.type === "image/heif" ||
+    file.name.toLowerCase().endsWith(".heic");
+  if (!isHeic) return { ...file, buffer: Buffer.from(file.buffer) };
+  const converted = await heicConvert({ buffer: Buffer.from(file.buffer), format: "JPEG", quality: 0.88 });
+  return {
+    name: file.name.replace(/\.heic$/i, ".jpg"),
+    type: "image/jpeg",
+    buffer: Buffer.from(converted),
+  };
 }
 
 interface ExpenseItem {
@@ -61,33 +74,25 @@ export async function POST(request: Request) {
     const requester = requesterData.name;
     const requesterEmail = requesterData.email;
 
-    // Generate group code
+    // Generate group code from last existing number for today (handles gaps from deletions)
     const datePrefix = getYYMMDD();
-    const { count } = await supabase
+    const { data: lastGroup } = await supabase
       .from("reimbursement_groups")
-      .select("*", { count: "exact", head: true })
-      .like("group_code", `#${datePrefix}-%`);
-    const groupNum = (count || 0) + 1;
-    const groupCode = `#${datePrefix}-${groupNum}`;
+      .select("group_code")
+      .like("group_code", `#${datePrefix}-%`)
+      .order("group_code", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const lastNum = lastGroup
+      ? parseInt(lastGroup.group_code.split("-").pop() || "0", 10)
+      : 0;
+    let groupNum = lastNum + 1;
+    let groupCode = `#${datePrefix}-${groupNum}`;
 
-    // 1. Create the group
-    const { data: group, error: groupError } = await supabase
-      .from("reimbursement_groups")
-      .insert({
-        group_code: groupCode,
-        requester,
-        requester_email: requesterEmail,
-        approver,
-      })
-      .select("id")
-      .single();
-
-    if (groupError) throw groupError;
-
-    // 2. Collect files grouped by item index
+    // 1. Collect + convert files before any DB writes
     const filesByItem = new Map<
       number,
-      { name: string; type: string; buffer: ArrayBuffer }[]
+      { name: string; type: string; buffer: Buffer }[]
     >();
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
@@ -95,14 +100,27 @@ export async function POST(request: Request) {
         if (match) {
           const idx = parseInt(match[1], 10);
           if (!filesByItem.has(idx)) filesByItem.set(idx, []);
-          filesByItem.get(idx)!.push({
-            name: value.name,
-            type: value.type,
-            buffer: await value.arrayBuffer(),
-          });
+          const converted = await toJpeg({ name: value.name, type: value.type, buffer: await value.arrayBuffer() });
+          filesByItem.get(idx)!.push(converted);
         }
       }
     }
+
+    // 2. Create the group (retry on duplicate group_code race)
+    let group: { id: number } | null = null;
+    let groupError: { code: string; message: string } | null = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      ({ data: group, error: groupError } = await supabase
+        .from("reimbursement_groups")
+        .insert({ group_code: groupCode, requester, requester_email: requesterEmail, approver })
+        .select("id")
+        .single());
+      if (!groupError || groupError.code !== "23505") break;
+      groupNum++;
+      groupCode = `#${datePrefix}-${groupNum}`;
+    }
+    if (groupError) throw groupError;
+    if (!group) throw new Error("Group insert returned no data");
 
     // 3. Upload files to Supabase Storage
     const uploadedByItem: { path: string; name: string; url: string }[][] = [];

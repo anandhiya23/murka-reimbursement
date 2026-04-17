@@ -9,6 +9,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { formatDate, formatSubmittedDate } from "@/lib/format";
+import { useToast, Toast } from "@/app/components/Toast";
 
 interface ProofFile {
   id: number;
@@ -140,6 +141,7 @@ export default function ReimbursementTable({
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
+  const { message: toastMsg, show: showToast } = useToast();
 
   const filtered = useMemo(() => {
     if (!search) return groups;
@@ -274,7 +276,10 @@ export default function ReimbursementTable({
                     <ChevronRight size={16} className="chevron-icon" />
                   </div>
                   <div className="col col-name">
-                    <span className="group-code">{g.group_code}</span>
+                    <span
+                      className="group-code"
+                      onClick={(e) => { e.stopPropagation(); const code = g.group_code.replace(/^#/, ""); navigator.clipboard.writeText(code); showToast(`Copied ${code}`); }}
+                    >{g.group_code}</span>
                   </div>
                   <div className="col col-date">
                     {formatSubmittedDate(g.created_at)}
@@ -323,6 +328,7 @@ export default function ReimbursementTable({
           </button>
         </div>
       </div>
+      <Toast message={toastMsg} />
     </div>
   );
 }

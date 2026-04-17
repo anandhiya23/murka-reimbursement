@@ -52,6 +52,16 @@ export async function POST(request: Request) {
           emailTriggered = true;
           await sendReviewEmail(supabase, group);
         }
+
+        if (emailTriggered) {
+          return NextResponse.json({
+            status: "OK",
+            emailTriggered,
+            groupCode: group.group_code,
+            requester: group.requester,
+            requesterEmail: group.requester_email,
+          });
+        }
       } catch (emailErr) {
         // Don't fail the review if auto-notify fails — log and continue
         console.error("Auto-notify failed:", emailErr);
