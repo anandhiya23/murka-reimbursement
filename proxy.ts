@@ -64,6 +64,14 @@ export async function proxy(request: NextRequest) {
     return redirectTo("/");
   }
 
+  // Page documents fetch their data client-side in useEffect, which does NOT
+  // re-run when a page is restored from the back/forward (bf)cache — a snapshot
+  // frozen mid-load shows a stuck spinner. no-store on document navigations
+  // disables bfcache for pages, so back/forward always does a fresh load.
+  if (request.headers.get("sec-fetch-dest") === "document") {
+    supabaseResponse.headers.set("Cache-Control", "no-store, must-revalidate");
+  }
+
   return supabaseResponse;
 }
 
