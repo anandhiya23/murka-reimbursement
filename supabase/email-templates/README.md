@@ -11,9 +11,19 @@ Branded HTML for every auth email. Paste into **Supabase Dashboard → Authentic
 | `email-change.html` | Change email address | Confirm your new Murka email |
 | `reauthentication.html` | Reauthentication | Your Murka verification code |
 
+## ⚠️ These templates are REQUIRED, not optional
+
+The **default** Supabase templates use `{{ .ConfirmationURL }}`, which for server-generated
+links (invite, recovery) emits an **implicit-flow hash** (`#access_token=…`). Our server route
+`/api/auth/callback` can only read query params — URL fragments never reach the server — so those
+links fail with `/login?error=auth`. You MUST paste these templates so links use the `token_hash`
+pattern instead.
+
 ## Notes
 
-- Link templates use `{{ .ConfirmationURL }}` — works with the `/api/auth/callback` route (handles both `code` and `token_hash`).
+- Link templates use `{{ .SiteURL }}/api/auth/callback?token_hash={{ .TokenHash }}&type=…&next=…`
+  — server-readable query params → callback runs `verifyOtp` → session. `{{ .SiteURL }}` must be
+  set correctly in **Auth → URL Configuration**.
 - `reauthentication.html` uses `{{ .Token }}` (6-digit OTP code), not a link.
 - `email-change.html` shows `{{ .Email }}` → `{{ .NewEmail }}`.
 - Logo is a text wordmark on purpose: most email clients (Gmail) strip SVG and inline `<style>`. All CSS is inline.
