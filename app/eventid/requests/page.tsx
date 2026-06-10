@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import EventidHeader from "@/app/components/EventidHeader";
-import { ExternalLink, Check, X } from "lucide-react";
+import { ExternalLink, Check, X, Printer } from "lucide-react";
 
 interface ReqRow {
   id: number; event_id: number; division_id: number; full_name: string;
@@ -18,6 +18,8 @@ export default function AllRequestsPage() {
   const [rows, setRows] = useState<ReqRow[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     fetch("/api/eventid/events").then(async (res) => {
@@ -46,7 +48,44 @@ export default function AllRequestsPage() {
     await load();
   }
 
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function printCards(ids?: number[]) {
+    if (!eventId) { alert("Select an event first."); return; }
+    setPrinting(true);
+    try {
+      const res = await fetch("/api/eventid/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, requestIds: ids }),
+      });
+      if (!res.ok) {
+        alert((await res.json().catch(() => ({}))).error || "Print failed");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "idcards.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setPrinting(false);
+    }
+  }
+
   const visible = rows.filter((r) => filter === "all" || r.status === filter);
+  const approvedSelected = [...selected].filter((id) =>
+    rows.some((r) => r.id === id && r.status === "approved")
+  );
   const counts = {
     all: rows.length,
     pending: rows.filter((r) => r.status === "pending").length,
@@ -59,7 +98,7 @@ export default function AllRequestsPage() {
       <EventidHeader subtitle="All Requests" />
       <div className="admin-container">
         <div style={{ display: "flex", gap: "0.75em", alignItems: "center", marginBottom: "1em", flexWrap: "wrap" }}>
-          <select value={eventId} onChange={(e) => setEventId(e.target.value ? Number(e.target.value) : "")}>
+          <select value={eventId} onChange={(e) => { setEventId(e.target.value ? Number(e.target.value) : ""); setSelected(new Set()); }}>
             <option value="">All events</option>
             {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
           </select>
@@ -70,6 +109,18 @@ export default function AllRequestsPage() {
               </button>
             ))}
           </div>
+          {eventId && (
+            <div style={{ marginLeft: "auto", display: "flex", gap: "0.5em" }}>
+              {approvedSelected.length > 0 && (
+                <button className="btn-secondary" disabled={printing} onClick={() => printCards(approvedSelected)}>
+                  <Printer size={14} /> Print Selected ({approvedSelected.length})
+                </button>
+              )}
+              <button className="btn-primary" disabled={printing} onClick={() => printCards()}>
+                <Printer size={14} /> {printing ? "Generating..." : `Print All Approved (${counts.approved})`}
+              </button>
+            </div>
+          )}
         </div>
 
         {loading ? <p>Loading...</p> : visible.length === 0 ? (
@@ -79,6 +130,10 @@ export default function AllRequestsPage() {
             {visible.map((r) => (
               <div key={r.id} className="project-item">
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75em" }}>
+                  {r.status === "approved" && (
+                    <input type="checkbox" style={{ width: "auto", margin: 0 }}
+                      checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} />
+                  )}
                   {r.photo_url ? <img src={r.photo_url} alt="" className="eventid-thumb" />
                     : <div className="eventid-thumb eventid-thumb-empty" />}
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.2em" }}>
