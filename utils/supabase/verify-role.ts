@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { getAuthIdentity } from "@/utils/supabase/claims";
 import { cookies } from "next/headers";
 
 export interface AppRoleResult {
@@ -17,15 +18,13 @@ export async function verifyAppRole(
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const identity = await getAuthIdentity(supabase);
 
-  if (!user?.email) {
+  if (!identity?.email) {
     return { supabase, user: null, role: null, isSuperAdmin: false };
   }
-  const email = user.email.toLowerCase();
-  const safeUser = { id: user.id, email };
+  const email = identity.email.toLowerCase();
+  const safeUser = { id: identity.id, email };
 
   // Super-admin: god over all apps.
   const { data: sa } = await supabase

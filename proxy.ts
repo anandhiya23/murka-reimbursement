@@ -35,9 +35,10 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifies the JWT locally (asymmetric keys) — no auth-server
+  // round-trip per request, avoiding the auth rate limit under load.
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims?.claims ?? null;
 
   // Redirect helper — MUST carry over any auth cookies refreshed by getUser(),
   // otherwise a rotated token is dropped and every request re-refreshes => loop.

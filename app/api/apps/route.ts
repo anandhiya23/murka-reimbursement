@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { getAuthIdentity } from "@/utils/supabase/claims";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -7,13 +8,11 @@ export async function GET() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) {
+  const identity = await getAuthIdentity(supabase);
+  if (!identity?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const email = user.email.toLowerCase();
+  const email = identity.email.toLowerCase();
 
   const { data: sa } = await supabase
     .from("super_admins")
