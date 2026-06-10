@@ -13,12 +13,16 @@ const APPS = [
 
 export default function LauncherPage() {
   const [email, setEmail] = useState("");
+  const [allowed, setAllowed] = useState<string[] | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user?.email) setEmail(data.user.email);
-    });
+    fetch("/api/apps")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.email) setEmail(data.email);
+        setAllowed(Array.isArray(data.apps) ? data.apps : []);
+      })
+      .catch(() => setAllowed([]));
   }, []);
 
   async function handleSignOut() {
@@ -45,15 +49,31 @@ export default function LauncherPage() {
       <div className="launcher-container">
         <h1 className="launcher-title">Murka System</h1>
         <p className="launcher-subtitle">Choose an app</p>
-        <div className="launcher-grid">
-          {APPS.map(({ key, name, desc, href, Icon }) => (
-            <a key={key} href={href} className="launcher-card">
-              <div className="launcher-card-icon"><Icon size={28} /></div>
-              <div className="launcher-card-name">{name}</div>
-              <div className="launcher-card-desc">{desc}</div>
-            </a>
-          ))}
-        </div>
+        {allowed === null ? (
+          <p className="launcher-subtitle">Loading...</p>
+        ) : (
+          (() => {
+            const visible = APPS.filter((a) => allowed.includes(a.key));
+            if (visible.length === 0) {
+              return (
+                <p className="launcher-subtitle">
+                  You don&apos;t have access to any apps yet. Contact an admin.
+                </p>
+              );
+            }
+            return (
+              <div className="launcher-grid">
+                {visible.map(({ key, name, desc, href, Icon }) => (
+                  <a key={key} href={href} className="launcher-card">
+                    <div className="launcher-card-icon"><Icon size={28} /></div>
+                    <div className="launcher-card-name">{name}</div>
+                    <div className="launcher-card-desc">{desc}</div>
+                  </a>
+                ))}
+              </div>
+            );
+          })()
+        )}
       </div>
     </>
   );

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAdmin } from "@/utils/supabase/verify-admin";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { inviteUser } from "@/lib/invite-user";
 
 // GET all requesters
 export async function GET() {
@@ -50,14 +51,9 @@ export async function POST(request: Request) {
     const origin = new URL(request.url).origin;
 
     // Send invite email — user sets their own password (email auto-confirmed on accept).
-    // Lands on /set-password after the link is verified.
-    const { error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(
-      cleanEmail,
-      { redirectTo: `${origin}/api/auth/callback?next=/set-password` }
-    );
-
-    if (inviteError) {
-      return NextResponse.json({ error: inviteError.message }, { status: 400 });
+    const invite = await inviteUser(serviceClient, cleanEmail, origin);
+    if (!invite.ok) {
+      return NextResponse.json({ error: invite.error }, { status: 400 });
     }
 
     // Insert into requesters table
@@ -75,6 +71,11 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Mirror into the generic roles table (reimbursement requester).
+    await serviceClient
+      .from("user_app_roles")
+      .insert({ email: cleanEmail, app_key: "reimbursement", role: "requester" });
 
     return NextResponse.json({ status: "OK" });
   } catch (error) {
@@ -125,6 +126,12 @@ export async function DELETE(request: Request) {
       .delete()
       .eq("id", id);
     if (deleteError) throw deleteError;
+
+    // Deleting the auth account removes all access — clear their app roles too.
+    await serviceClient
+      .from("user_app_roles")
+      .delete()
+      .eq("email", email.toLowerCase());
 
     return NextResponse.json({ status: "OK" });
   } catch (error) {
