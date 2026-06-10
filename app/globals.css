@@ -1,23 +1,65 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  --primary: #1a1a2e;
+  --primary: oklch(0.205 0 0);
   --primary-light: #2d2d44;
-  --accent: #C1EF1C;
+  --accent: oklch(0.97 0 0);
   --accent-hover: #a8d410;
   --accent-text: #1a1a2e;
   --surface: #ffffff;
   --bg: #f4f5f7;
-  --border: #e2e4e9;
+  --border: oklch(0.922 0 0);
   --border-light: #f0f1f3;
   --text: #1a1a2e;
   --text-muted: #6b7280;
   --text-light: #9ca3af;
-  --radius: 12px;
+  --radius: 0.625rem;
   --radius-sm: 8px;
   --radius-xs: 6px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
   --transition: 150ms ease;
+  /* Legacy Murka design tokens (reimbursement UI) — namespaced so shadcn can
+     own the standard token names without colliding. */
+  --mk-primary: #1a1a2e;
+  --mk-accent: #C1EF1C;
+  --mk-border: #e2e4e9;
+  --mk-radius: 12px;
+  --mk-radius-sm: 8px;
+  --mk-radius-xs: 6px;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 * {
@@ -35,6 +77,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Legacy Murka styles live in the components layer so shadcn's utility classes
+   (utilities layer) win wherever they compete. */
+@layer components {
 /* ========== Header ========== */
 .header-bar {
   display: flex;
@@ -44,7 +89,7 @@ body {
   color: var(--text);
   padding: 0 2em;
   height: 56px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--mk-border);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -69,7 +114,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  background: var(--accent);
+  background: var(--mk-accent);
   color: var(--accent-text);
   padding: 0.2em 0.55em;
   border-radius: 4px;
@@ -82,7 +127,7 @@ body {
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   padding: 0.35em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   transition: background var(--transition);
 }
 
@@ -120,15 +165,15 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  border: 2px solid var(--border);
+  border: 2px solid var(--mk-border);
 }
 
 .sign-out-btn {
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--mk-border);
   padding: 0.35em 0.75em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   cursor: pointer;
   font-size: 0.8rem;
   width: auto;
@@ -146,12 +191,12 @@ body {
 }
 
 .admin-link {
-  color: var(--accent);
+  color: var(--mk-accent);
   text-decoration: none;
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.35em 0.75em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   transition: all var(--transition);
   display: inline-flex;
   align-items: center;
@@ -209,8 +254,8 @@ body {
 /* ========== Card / Container ========== */
 .container {
   background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border-radius: var(--mk-radius);
+  border: 1px solid var(--mk-border);
   padding: 1.75em;
 }
 
@@ -246,8 +291,8 @@ textarea {
   width: 100%;
   margin-bottom: 0.85em;
   padding: 0.6em 0.85em;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border-radius: var(--mk-radius-sm);
+  border: 1px solid var(--mk-border);
   background: var(--surface);
   font-size: 0.9rem;
   transition: all var(--transition);
@@ -270,7 +315,7 @@ textarea {
 input:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--mk-accent);
   box-shadow: 0 0 0 3px rgba(193, 239, 28, 0.25);
 }
 
@@ -278,11 +323,11 @@ button[type="submit"] {
   width: 100%;
   padding: 0.7em;
   border: none;
-  background: var(--accent);
+  background: var(--mk-accent);
   color: var(--accent-text);
   font-size: 0.9rem;
   font-weight: 600;
-  border-radius: var(--radius-sm);
+  border-radius: var(--mk-radius-sm);
   cursor: pointer;
   transition: all var(--transition);
   margin-top: 0.5em;
@@ -301,10 +346,10 @@ button[type="submit"]:hover {
 .add-item-btn {
   background: transparent;
   color: var(--text-muted);
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--mk-border);
   padding: 0.55em 1em;
   margin-bottom: 0.85em;
-  border-radius: var(--radius-sm);
+  border-radius: var(--mk-radius-sm);
   cursor: pointer;
   width: 100%;
   font-size: 0.85rem;
@@ -342,9 +387,9 @@ form.loading {
   align-items: center;
   padding: 0.75em 1em;
   margin-bottom: 0.85em;
-  background: var(--primary);
-  border-radius: var(--radius-sm);
-  color: var(--accent);
+  background: var(--mk-primary);
+  border-radius: var(--mk-radius-sm);
+  color: var(--mk-accent);
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -362,9 +407,9 @@ form.loading {
 
 /* ========== Expense Item ========== */
 .expense-item {
-  border: 1px solid var(--border);
+  border: 1px solid var(--mk-border);
   padding: 1em;
-  border-radius: var(--radius-sm);
+  border-radius: var(--mk-radius-sm);
   margin-bottom: 0.85em;
   background: var(--surface);
   transition: border-color var(--transition);
@@ -379,7 +424,7 @@ form.loading {
   color: #ef4444;
   border: 1px solid #fecaca;
   padding: 0.3em 0.7em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   cursor: pointer;
   font-size: 0.8rem;
   width: auto;
@@ -395,8 +440,8 @@ form.loading {
 /* ========== React Select ========== */
 .react-select__control {
   min-height: 38px !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-sm) !important;
+  border: 1px solid var(--mk-border) !important;
+  border-radius: var(--mk-radius-sm) !important;
   background: var(--surface) !important;
   box-shadow: none !important;
   margin-bottom: 0.85em;
@@ -404,13 +449,13 @@ form.loading {
 }
 
 .react-select__control--is-focused {
-  border-color: var(--accent) !important;
+  border-color: var(--mk-accent) !important;
   box-shadow: 0 0 0 3px rgba(193, 239, 28, 0.25) !important;
 }
 
 .react-select__menu {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm) !important;
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-radius-sm) !important;
   box-shadow: var(--shadow-md) !important;
   font-size: 0.9rem;
 }
@@ -452,8 +497,8 @@ span.approvalStatus.rejected {
 /* ========== List (div-based table replacement) ========== */
 .list-container {
   background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border-radius: var(--mk-radius);
+  border: 1px solid var(--mk-border);
   padding: 1.25em;
   min-width: 0;
 }
@@ -481,7 +526,7 @@ span.approvalStatus.rejected {
   display: flex;
   align-items: center;
   padding: 0.5em 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--mk-border);
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
@@ -537,7 +582,7 @@ span.approvalStatus.rejected {
 }
 
 .collapse-content {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--mk-accent);
   background: rgba(0, 0, 0, 0.02);
 }
 
@@ -546,7 +591,7 @@ span.approvalStatus.rejected {
   display: flex;
   align-items: center;
   padding: 0.35em 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--mk-border);
   font-size: 0.65rem;
   font-weight: 500;
   text-transform: uppercase;
@@ -621,16 +666,16 @@ span.approvalStatus.rejected {
 }
 
 .dt-controls select {
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border);
+  border-radius: var(--mk-radius-xs);
+  border: 1px solid var(--mk-border);
   padding: 0.3em 0.5em;
   font-size: 0.8rem;
   background: var(--surface);
 }
 
 .dt-controls input[type="text"] {
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border);
+  border-radius: var(--mk-radius-xs);
+  border: 1px solid var(--mk-border);
   padding: 0.35em 0.7em;
   margin-left: 0.5em;
   margin-bottom: 0;
@@ -650,8 +695,8 @@ span.approvalStatus.rejected {
 }
 
 .dt-pagination button {
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border);
+  border-radius: var(--mk-radius-xs);
+  border: 1px solid var(--mk-border);
   padding: 0.35em 0.55em;
   background: var(--surface);
   color: var(--text-muted);
@@ -674,9 +719,9 @@ span.approvalStatus.rejected {
 }
 
 .dt-pagination button.active {
-  background: var(--accent);
+  background: var(--mk-accent);
   color: var(--accent-text);
-  border-color: var(--accent);
+  border-color: var(--mk-accent);
   font-weight: 600;
 }
 
@@ -746,8 +791,8 @@ span.approvalStatus.rejected {
 
 .login-card {
   background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border-radius: var(--mk-radius);
+  border: 1px solid var(--mk-border);
   padding: 2.5em;
   text-align: center;
   max-width: 380px;
@@ -850,8 +895,8 @@ span.approvalStatus.rejected {
   gap: 0.4em;
   padding: 1.5em;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-radius);
   text-decoration: none;
   transition: all var(--transition);
 }
@@ -882,8 +927,8 @@ span.approvalStatus.rejected {
 /* ========== Admin Page ========== */
 .admin-container {
   background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border-radius: var(--mk-radius);
+  border: 1px solid var(--mk-border);
   padding: 1.5em;
   max-width: 1400px;
   overflow-x: auto;
@@ -894,14 +939,14 @@ span.approvalStatus.rejected {
   display: flex;
   gap: 0.35em;
   margin-bottom: 1.25em;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--mk-border);
   padding-bottom: 0.85em;
 }
 
 .admin-tab {
   padding: 0.45em 1em;
   border: none;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   background: transparent;
   cursor: pointer;
   font-size: 0.8rem;
@@ -917,7 +962,7 @@ span.approvalStatus.rejected {
 }
 
 .admin-tab.active {
-  background: var(--accent);
+  background: var(--mk-accent);
   color: var(--accent-text);
 }
 
@@ -953,7 +998,7 @@ span.approvalStatus.rejected {
   color: white;
   border: none;
   padding: 0.35em 0.75em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 500;
@@ -974,7 +1019,7 @@ span.approvalStatus.rejected {
   color: #ef4444;
   border: 1px solid #fecaca;
   padding: 0.35em 0.75em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 500;
@@ -992,11 +1037,11 @@ span.approvalStatus.rejected {
 }
 
 .btn-notify {
-  background: var(--accent);
+  background: var(--mk-accent);
   color: var(--accent-text);
   border: none;
   padding: 0.35em 0.75em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 500;
@@ -1025,7 +1070,7 @@ span.approvalStatus.rejected {
   color: var(--text-light);
   border: none;
   padding: 0.3em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   cursor: pointer;
   width: auto;
   margin-top: 0;
@@ -1042,9 +1087,9 @@ span.approvalStatus.rejected {
 .btn-cancel {
   background: var(--bg);
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--mk-border);
   padding: 0.5em 1em;
-  border-radius: var(--radius-sm);
+  border-radius: var(--mk-radius-sm);
   cursor: pointer;
   font-size: 0.85rem;
   width: auto;
@@ -1073,7 +1118,7 @@ span.approvalStatus.rejected {
   gap: 0.4em;
   padding: 0.45em 0.85em;
   border: none;
-  border-radius: var(--radius-xs);
+  border-radius: var(--mk-radius-xs);
   background: transparent;
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.8rem;
@@ -1090,7 +1135,7 @@ span.approvalStatus.rejected {
 }
 
 .admin-nav-tab.active {
-  color: var(--accent);
+  color: var(--mk-accent);
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -1123,8 +1168,8 @@ span.approvalStatus.rejected {
   justify-content: space-between;
   align-items: center;
   padding: 0.5em 0.75em;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-radius-xs);
   font-size: 0.85rem;
 }
 
@@ -1139,8 +1184,8 @@ span.approvalStatus.rejected {
 /* ========== Requester Add Form ========== */
 .requester-add {
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-radius-sm);
   padding: 1.25em;
   margin-bottom: 1em;
 }
@@ -1157,11 +1202,11 @@ span.approvalStatus.rejected {
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: var(--mk-accent);
   color: var(--accent-text);
   border: none;
   padding: 0.55em 1.25em;
-  border-radius: var(--radius-sm);
+  border-radius: var(--mk-radius-sm);
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 600;
@@ -1188,9 +1233,9 @@ span.approvalStatus.rejected {
 .btn-secondary {
   background: var(--surface);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--mk-border);
   padding: 0.5em 1em;
-  border-radius: var(--radius-sm);
+  border-radius: var(--mk-radius-sm);
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 500;
@@ -1207,8 +1252,8 @@ span.approvalStatus.rejected {
 }
 
 .eventid-division-block {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--mk-border);
+  border-radius: var(--mk-radius-sm);
   padding: 1em;
   margin-bottom: 0.75em;
 }
@@ -1220,7 +1265,7 @@ span.approvalStatus.rejected {
   gap: 0.4em;
   margin-top: 0.75em;
   padding-top: 0.75em;
-  border-top: 1px dashed var(--border);
+  border-top: 1px dashed var(--mk-border);
 }
 
 .eventid-pics-label {
@@ -1233,7 +1278,7 @@ span.approvalStatus.rejected {
   align-items: center;
   gap: 0.35em;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--mk-border);
   border-radius: 999px;
   padding: 0.2em 0.6em;
   font-size: 0.8rem;
@@ -1284,9 +1329,9 @@ span.approvalStatus.rejected {
 .eventid-thumb {
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--mk-radius-sm);
   object-fit: cover;
-  border: 1px solid var(--border);
+  border: 1px solid var(--mk-border);
 }
 
 .eventid-thumb-empty {
@@ -1316,7 +1361,7 @@ span.approvalStatus.rejected {
   align-items: center;
   gap: 0.5rem;
   padding: 0.65rem 0.9rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--mk-radius-sm);
   font-size: 0.85rem;
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   animation: toast-in 0.2s ease;
@@ -1384,7 +1429,7 @@ span.approvalStatus.rejected {
 
 .modal-card {
   background: var(--surface);
-  border-radius: var(--radius);
+  border-radius: var(--mk-radius);
   box-shadow: var(--shadow-lg);
   padding: 2em;
   max-width: 480px;
@@ -1401,7 +1446,7 @@ span.approvalStatus.rejected {
 .modal-details {
   background: var(--bg);
   padding: 1em;
-  border-radius: var(--radius-sm);
+  border-radius: var(--mk-radius-sm);
   margin-bottom: 1em;
   border: 1px solid var(--border-light);
 }
@@ -1468,7 +1513,7 @@ span.approvalStatus.rejected {
 
   .header-user > * {
     padding: 0.65em 0.5em;
-    border-radius: var(--radius-xs);
+    border-radius: var(--mk-radius-xs);
     width: 100%;
   }
 
@@ -1499,7 +1544,7 @@ span.approvalStatus.rejected {
   }
 
   .header-user .admin-link {
-    color: var(--accent);
+    color: var(--mk-accent);
   }
 
   .header-user .header-avatar {
@@ -1544,7 +1589,7 @@ span.approvalStatus.rejected {
   .mobile-only .admin-nav-tab {
     justify-content: flex-start;
     padding: 0.65em 0.5em;
-    border-radius: var(--radius-xs);
+    border-radius: var(--mk-radius-xs);
     font-size: 0.85rem;
   }
 
@@ -1559,7 +1604,7 @@ span.approvalStatus.rejected {
 
   .header-menu-user > * {
     padding: 0.65em 0.5em;
-    border-radius: var(--radius-xs);
+    border-radius: var(--mk-radius-xs);
     width: 100%;
   }
 
@@ -1584,7 +1629,7 @@ span.approvalStatus.rejected {
   }
 
   .header-menu-user .admin-link {
-    color: var(--accent);
+    color: var(--mk-accent);
   }
 
   .header-menu-user .header-avatar {
@@ -1699,5 +1744,111 @@ span.approvalStatus.rejected {
   .admin-container {
     margin: 0.5em;
     padding: 0.85em;
+  }
+}
+
+} /* end @layer components (legacy Murka styles) */
+
+/* Neutralize legacy global element styles that have no utility competitor,
+   inside shadcn components (data-slot wins on attribute specificity). */
+label[data-slot="label"] {
+  text-transform: none;
+  letter-spacing: normal;
+  margin-bottom: 0;
+  color: inherit;
+  display: flex;
+}
+[data-slot="input"],
+[data-slot="textarea"],
+[data-slot="select-trigger"] {
+  margin-bottom: 0;
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--mk-border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--mk-accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--mk-primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--mk-radius) * 0.6);
+  --radius-md: calc(var(--mk-radius) * 0.8);
+  --radius-lg: var(--mk-radius);
+  --radius-xl: calc(var(--mk-radius) * 1.4);
+  --radius-2xl: calc(var(--mk-radius) * 1.8);
+  --radius-3xl: calc(var(--mk-radius) * 2.2);
+  --radius-4xl: calc(var(--mk-radius) * 2.6);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }
