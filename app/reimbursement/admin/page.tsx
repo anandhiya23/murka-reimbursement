@@ -481,7 +481,7 @@ export default function AdminPage() {
                 </button>
               </div>
               <div className="header-menu-user">
-                <a href="/" className="admin-link">
+                <a href="/reimbursement" className="admin-link">
                   <ArrowLeft size={14} /> Back
                 </a>
                 {user.avatar_url && (

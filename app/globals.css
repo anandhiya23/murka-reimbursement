@@ -818,6 +818,67 @@ span.approvalStatus.rejected {
   text-decoration: underline;
 }
 
+/* ========== App Launcher ========== */
+.launcher-container {
+  max-width: 880px;
+  margin: 3em auto;
+  padding: 0 1.5em;
+}
+
+.launcher-title {
+  margin: 0 0 0.15em;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.launcher-subtitle {
+  margin: 0 0 2em;
+  color: var(--text-light);
+  font-size: 0.95rem;
+}
+
+.launcher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25em;
+}
+
+.launcher-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  padding: 1.5em;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: all var(--transition);
+}
+
+.launcher-card:hover {
+  border-color: var(--text-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.launcher-card-icon {
+  color: var(--text);
+  margin-bottom: 0.35em;
+}
+
+.launcher-card-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.launcher-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
 /* ========== Admin Page ========== */
 .admin-container {
   background: var(--surface);

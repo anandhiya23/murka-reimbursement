@@ -4,6 +4,17 @@ import { type NextRequest, NextResponse } from "next/server";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!;
 
+// Paths reachable without a session.
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/forgot-password",
+  "/set-password",
+  "/api/auth",
+  "/api/cron",
+  "/eventid/apply", // public tokenized ID form
+  "/api/eventid/public", // public token resolve + submit (service-role)
+];
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -28,25 +39,28 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // If not logged in and not on login or auth callback, redirect to login
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/forgot-password") &&
-    !request.nextUrl.pathname.startsWith("/set-password") &&
-    !request.nextUrl.pathname.startsWith("/api/auth") &&
-    !request.nextUrl.pathname.startsWith("/api/cron")
-  ) {
+  // Redirect helper — MUST carry over any auth cookies refreshed by getUser(),
+  // otherwise a rotated token is dropped and every request re-refreshes => loop.
+  const redirectTo = (pathname: string) => {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    url.pathname = pathname;
+    const res = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((c) => res.cookies.set(c));
+    return res;
+  };
+
+  // If not logged in and not on a public path, redirect to login.
+  // Public APIs (e.g. EventID public submit) self-validate their token regardless of proxy.
+  const isPublic = PUBLIC_PREFIXES.some((p) =>
+    request.nextUrl.pathname.startsWith(p)
+  );
+  if (!user && !isPublic) {
+    return redirectTo("/login");
   }
 
   // If logged in and on login page, redirect to home
   if (user && request.nextUrl.pathname.startsWith("/login")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+    return redirectTo("/");
   }
 
   return supabaseResponse;
