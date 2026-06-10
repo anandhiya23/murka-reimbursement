@@ -32,9 +32,9 @@ interface DivisionLite { id: number; name: string }
 
 type StatusFilter = "all" | "applicant" | "member" | "rejected";
 const STATUS_COLOR: Record<string, string> = {
-  applicant: "bg-amber-100 text-amber-800 border-amber-200",
-  member: "bg-green-100 text-green-800 border-green-200",
-  rejected: "bg-red-100 text-red-800 border-red-200",
+  applicant: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+  member: "border-primary/40 bg-primary/15 text-primary",
+  rejected: "border-destructive/40 bg-destructive/10 text-red-400",
 };
 
 export default function MembersPanel({
@@ -220,7 +220,7 @@ export default function MembersPanel({
                   </div>
                 </TableCell>
                 {!divisionId && <TableCell>{divName(r.division_id)}</TableCell>}
-                <TableCell className="font-mono text-sm">{r.member_no ?? "—"}</TableCell>
+                <TableCell className="font-mono text-sm text-primary">{r.member_no ?? <span className="text-muted-foreground">—</span>}</TableCell>
                 <TableCell><Badge variant="outline" className={STATUS_COLOR[r.status]}>{r.status}</Badge></TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">

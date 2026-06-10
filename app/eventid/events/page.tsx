@@ -72,10 +72,12 @@ export default function EventsPage() {
               <Card key={ev.id}>
                 <CardContent className="flex flex-wrap items-center gap-3 py-3">
                   <div>
-                    <div className="font-medium">{ev.name}</div>
-                    <div className="text-xs text-muted-foreground">/e/{ev.slug}</div>
+                    <div className="font-display font-semibold uppercase tracking-wide">{ev.name}</div>
+                    <div className="font-mono text-xs text-muted-foreground">/e/{ev.slug}</div>
                   </div>
-                  {ev.is_open ? <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">Open</Badge> : <Badge variant="outline">Closed</Badge>}
+                  {ev.is_open
+                    ? <Badge variant="outline" className="border-primary/40 bg-primary/15 text-primary">Open</Badge>
+                    : <Badge variant="outline">Closed</Badge>}
                   <div className="ml-auto flex items-center gap-2">
                     <Switch checked={ev.is_open} onCheckedChange={() => toggle(ev)} />
                     <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(`${origin}/e/${ev.slug}`); toast.success("Link copied"); }}>

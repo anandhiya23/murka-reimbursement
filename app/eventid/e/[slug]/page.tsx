@@ -30,6 +30,7 @@ export default function EventWorkspace() {
   const [event, setEvent] = useState<EventRow | null>(null);
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [pics, setPics] = useState<Record<number, Pic[]>>({});
+  const [stats, setStats] = useState({ applicant: 0, member: 0, printed: 0 });
   const [notFound, setNotFound] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -53,8 +54,18 @@ export default function EventWorkspace() {
     setPics(Object.fromEntries(entries));
   }, []);
 
+  const loadStats = useCallback(async (eventId: number) => {
+    const res = await fetch(`/api/eventid/members?eventId=${eventId}`);
+    const rows: { status: string; printed_at: string | null }[] = res.ok ? await res.json() : [];
+    setStats({
+      applicant: rows.filter((r) => r.status === "applicant").length,
+      member: rows.filter((r) => r.status === "member").length,
+      printed: rows.filter((r) => r.printed_at).length,
+    });
+  }, []);
+
   useEffect(() => { loadEvent(); }, [loadEvent]);
-  useEffect(() => { if (event) loadDivisions(event.id); }, [event, loadDivisions]);
+  useEffect(() => { if (event) { loadDivisions(event.id); loadStats(event.id); } }, [event, loadDivisions, loadStats]);
 
   function copy(text: string, label: string) { navigator.clipboard.writeText(text); toast.success(`${label} copied`); }
 
@@ -87,12 +98,24 @@ export default function EventWorkspace() {
 
           {/* OVERVIEW */}
           <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              {([
+                ["Applicants", stats.applicant, "text-amber-400"],
+                ["Members", stats.member, "text-primary"],
+                ["Printed", stats.printed, "text-foreground"],
+              ] as const).map(([label, value, color]) => (
+                <div key={label} className="rounded-lg border border-border bg-card p-4">
+                  <p className="eid-eyebrow">{label}</p>
+                  <p className={`mt-1 font-mono text-3xl font-bold ${color}`}>{String(value).padStart(2, "0")}</p>
+                </div>
+              ))}
+            </div>
             <Card>
               <CardHeader className="flex-row items-center justify-between">
                 <div>
                   <CardTitle>{event.name}</CardTitle>
                   <div className="text-sm text-muted-foreground mt-1">
-                    {event.is_open ? <Badge className="bg-green-100 text-green-800 border-green-200" variant="outline">Open</Badge>
+                    {event.is_open ? <Badge className="border-primary/40 bg-primary/15 text-primary" variant="outline">Open</Badge>
                       : <Badge variant="outline">Closed</Badge>}
                   </div>
                 </div>
@@ -104,7 +127,7 @@ export default function EventWorkspace() {
               <CardContent>
                 <Label>Public application link</Label>
                 <div className="flex gap-2 mt-1">
-                  <Input readOnly value={eventLink} />
+                  <Input readOnly value={eventLink} className="font-mono text-xs" />
                   <Button variant="outline" onClick={() => copy(eventLink, "Link")}><Copy className="h-4 w-4" /></Button>
                 </div>
               </CardContent>
@@ -127,7 +150,7 @@ export default function EventWorkspace() {
                   <Card key={d.id}>
                     <CardContent className="flex flex-wrap items-center gap-2 py-3">
                       <span className="font-medium">{d.name}</span>
-                      <span className="text-xs text-muted-foreground">/{d.slug}</span>
+                      <span className="font-mono text-xs text-muted-foreground">/{d.slug}</span>
                       <div className="ml-auto flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => copy(link, "Division link")}><Link2 className="h-4 w-4" /> Public link</Button>
                         <AlertDialog>

@@ -58,8 +58,17 @@ export default function ApplyForm({ eventSlug, divisionSlug }: { eventSlug: stri
   }
 
   const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div className="min-h-dvh flex items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md">{children}</Card>
+    <div className="dark eventid-theme min-h-dvh flex items-center justify-center p-4 font-sans antialiased">
+      <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
+        <div className="flex items-center gap-2.5 mb-3 px-1">
+          <span className="grid h-7 w-7 place-items-center rounded-[5px] bg-primary text-primary-foreground text-[11px] font-bold font-mono">ID</span>
+          <span className="font-display text-lg font-bold uppercase tracking-[0.14em]">Event<span className="text-primary">ID</span></span>
+        </div>
+        <Card className="overflow-hidden">
+          <div className="eid-perforation h-1.5 opacity-60" />
+          {children}
+        </Card>
+      </div>
     </div>
   );
 
