@@ -30,10 +30,10 @@ export async function POST(request: Request) {
   if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   let q = service
-    .from("eventid_requests")
-    .select("id, full_name, photo_path, eventid_divisions(name)")
+    .from("eventid_members")
+    .select("id, full_name, member_no, photo_path, eventid_divisions(name)")
     .eq("event_id", eventId)
-    .eq("status", "approved")
+    .eq("status", "member")
     .order("id");
   if (Array.isArray(requestIds) && requestIds.length) {
     q = q.in("id", requestIds);
@@ -69,12 +69,19 @@ export async function POST(request: Request) {
           image = null;
         }
       }
-      cards[i] = { fullName: r.full_name, division, event: event!.name, image };
+      cards[i] = { fullName: r.full_name, memberNo: r.member_no ?? null, division, event: event!.name, image };
     }
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
   const pdf = await buildIdCardsPdf(cards);
+
+  // Stamp printed_at for the rendered members.
+  await service
+    .from("eventid_members")
+    .update({ printed_at: new Date().toISOString() })
+    .in("id", rows.map((r) => r.id));
+
   const fileName = `idcards-${event.name.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}.pdf`;
 
   return new NextResponse(Buffer.from(pdf), {

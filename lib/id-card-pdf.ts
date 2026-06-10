@@ -12,6 +12,7 @@ const SAFE = 5 * MM; // inset from page edge for content
 
 export interface CardInput {
   fullName: string;
+  memberNo?: string | null;
   division: string;
   event: string;
   image: { bytes: Uint8Array; format: "jpg" | "png" } | null;
@@ -113,6 +114,18 @@ export async function buildIdCardsPdf(cards: CardInput[]): Promise<Uint8Array> {
       font,
       color: rgb(0.2, 0.2, 0.2),
     });
+
+    if (card.memberNo) {
+      cursorY -= 5.5 * MM;
+      const noText = `No. ${card.memberNo}`;
+      page.drawText(noText, {
+        x: (PAGE_W - fontBold.widthOfTextAtSize(noText, 9)) / 2,
+        y: cursorY,
+        size: 9,
+        font: fontBold,
+        color: rgb(0.07, 0.07, 0.07),
+      });
+    }
 
     // Event name pinned near the bottom safe line.
     const evSize = fitFontSize(card.event, font, contentW, 9);

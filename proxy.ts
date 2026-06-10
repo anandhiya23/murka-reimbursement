@@ -11,8 +11,8 @@ const PUBLIC_PREFIXES = [
   "/set-password",
   "/api/auth",
   "/api/cron",
-  "/eventid/apply", // public tokenized ID form
-  "/api/eventid/public", // public token resolve + submit (service-role)
+  "/e/", // public ID application form (slug-based)
+  "/api/eventid/public", // public resolve + submit (service-role)
 ];
 
 export async function proxy(request: NextRequest) {
