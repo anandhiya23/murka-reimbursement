@@ -791,43 +791,31 @@ span.approvalStatus.rejected {
   margin: 0 0 0.5em;
 }
 
-.login-divider {
-  display: flex;
-  align-items: center;
-  gap: 0.85em;
-  margin-bottom: 1.25em;
-  color: var(--text-light);
+.login-success {
+  color: #16a34a;
   font-size: 0.8rem;
+  margin: 0 0 0.5em;
 }
 
-.login-divider::before,
-.login-divider::after {
-  content: "";
-  flex: 1;
-  border-bottom: 1px solid var(--border);
+.login-muted {
+  color: var(--text-light);
+  font-size: 0.85rem;
+  margin: 0 0 1em;
 }
 
-.google-btn {
+.login-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.75em;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  padding: 0.6em 1.25em;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all var(--transition);
-  width: 100%;
-  margin-top: 0;
+  gap: 0.4em;
+  color: var(--text-light);
+  font-size: 0.85rem;
+  text-decoration: none;
+  margin-top: 1em;
 }
 
-.google-btn:hover {
-  background: var(--bg);
-  border-color: var(--text-light);
+.login-link:hover {
+  color: var(--text);
+  text-decoration: underline;
 }
 
 /* ========== Admin Page ========== */
@@ -1525,11 +1513,6 @@ span.approvalStatus.rejected {
 
   .login-card {
     padding: 1.75em;
-  }
-
-  .google-btn {
-    font-size: 0.85rem;
-    padding: 0.55em 1em;
   }
 
   .table-container {

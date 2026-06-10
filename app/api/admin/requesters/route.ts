@@ -1,6 +1,6 @@
-import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { verifyAdmin } from "@/utils/supabase/verify-admin";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 // GET all requesters
 export async function GET() {
@@ -36,52 +36,28 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, email, password } = body as {
-      name: string;
-      email: string;
-      password: string;
-    };
+    const { name, email } = body as { name: string; email: string };
 
-    if (!name?.trim() || !email?.trim() || !password?.trim()) {
+    if (!name?.trim() || !email?.trim()) {
       return NextResponse.json(
-        { error: "Name, email, and password are required" },
+        { error: "Name and email are required" },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "Password must be at least 6 characters" },
-        { status: 400 }
-      );
-    }
+    const cleanEmail = email.trim().toLowerCase();
+    const serviceClient = createAdminClient();
+    const origin = new URL(request.url).origin;
 
-    // Use service role client to create auth user
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!serviceRoleKey) {
-      return NextResponse.json(
-        { error: "Server misconfigured: missing service role key" },
-        { status: 500 }
-      );
-    }
-
-    const serviceClient = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceRoleKey
+    // Send invite email — user sets their own password (email auto-confirmed on accept).
+    // Lands on /set-password after the link is verified.
+    const { error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(
+      cleanEmail,
+      { redirectTo: `${origin}/api/auth/callback?next=/set-password` }
     );
 
-    // Create auth user
-    const { error: authError } = await serviceClient.auth.admin.createUser({
-      email: email.trim(),
-      password: password.trim(),
-      email_confirm: true,
-    });
-
-    if (authError) {
-      return NextResponse.json(
-        { error: authError.message },
-        { status: 400 }
-      );
+    if (inviteError) {
+      return NextResponse.json({ error: inviteError.message }, { status: 400 });
     }
 
     // Insert into requesters table
@@ -89,7 +65,7 @@ export async function POST(request: Request) {
       .from("requesters")
       .insert({
         name: name.trim(),
-        email: email.trim(),
+        email: cleanEmail,
         is_admin: false,
       });
 
@@ -127,18 +103,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!serviceRoleKey) {
-      return NextResponse.json(
-        { error: "Server misconfigured: missing service role key" },
-        { status: 500 }
-      );
-    }
-
-    const serviceClient = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceRoleKey
-    );
+    const serviceClient = createAdminClient();
 
     // Find the auth user by email
     const { data: users, error: listError } =

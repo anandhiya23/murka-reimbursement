@@ -20,6 +20,7 @@ import {
   X,
   Mail,
   AlertCircle,
+  KeyRound,
 } from "lucide-react";
 import { formatDate, formatSubmittedDate } from "@/lib/format";
 import { useToast, Toast } from "@/app/components/Toast";
@@ -204,7 +205,8 @@ export default function AdminPage() {
 
   // Requesters state
   const [requesters, setRequesters] = useState<Requester[]>([]);
-  const [newRequester, setNewRequester] = useState({ name: "", email: "", password: "" });
+  const [newRequester, setNewRequester] = useState({ name: "", email: "" });
+  const [inviteSent, setInviteSent] = useState("");
   const [requesterError, setRequesterError] = useState("");
   const [requesterLoading, setRequesterLoading] = useState(false);
 
@@ -384,11 +386,13 @@ export default function AdminPage() {
   // Requester helpers
   async function addRequester() {
     setRequesterError("");
-    if (!newRequester.name.trim() || !newRequester.email.trim() || !newRequester.password.trim()) {
-      setRequesterError("All fields are required");
+    setInviteSent("");
+    if (!newRequester.name.trim() || !newRequester.email.trim()) {
+      setRequesterError("Name and email are required");
       return;
     }
     setRequesterLoading(true);
+    const invitedEmail = newRequester.email.trim();
     const resp = await fetch("/api/admin/requesters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -398,7 +402,8 @@ export default function AdminPage() {
     if (!resp.ok) {
       setRequesterError(json.error);
     } else {
-      setNewRequester({ name: "", email: "", password: "" });
+      setNewRequester({ name: "", email: "" });
+      setInviteSent(`Invite sent to ${invitedEmail}. They set their own password via the email link.`);
       await loadRequesters();
     }
     setRequesterLoading(false);
@@ -490,6 +495,9 @@ export default function AdminPage() {
                 <span>
                   {user.name} ({user.email})
                 </span>
+                <a href="/account" className="admin-link">
+                  <KeyRound size={14} /> Password
+                </a>
                 <button type="button" className="sign-out-btn" onClick={handleSignOut}>
                   <LogOut size={14} /> Sign out
                 </button>
@@ -638,7 +646,7 @@ export default function AdminPage() {
       {adminTab === "requesters" && (
         <div className="admin-container">
           <h2>Users</h2>
-          <p className="admin-subtitle">Create login accounts for team members. They must be added here before they can use the app.</p>
+          <p className="admin-subtitle">Invite team members by email. They get a link to set their own password. They must be added here before they can use the app.</p>
 
           <div className="requester-add">
             <div className="requester-add-fields">
@@ -658,21 +666,14 @@ export default function AdminPage() {
                   placeholder="e.g. bintang@murka.id"
                   value={newRequester.email}
                   onChange={(e) => setNewRequester((r) => ({ ...r, email: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label>Password</label>
-                <input
-                  type="password"
-                  placeholder="Min 6 characters"
-                  value={newRequester.password}
-                  onChange={(e) => setNewRequester((r) => ({ ...r, password: e.target.value }))}
+                  onKeyDown={(e) => e.key === "Enter" && addRequester()}
                 />
               </div>
             </div>
             {requesterError && <p className="login-error">{requesterError}</p>}
+            {inviteSent && <p className="login-success">{inviteSent}</p>}
             <button className="btn-primary" onClick={addRequester} disabled={requesterLoading}>
-              <Plus size={14} /> {requesterLoading ? "Creating..." : "Create User"}
+              <Plus size={14} /> {requesterLoading ? "Inviting..." : "Invite User"}
             </button>
           </div>
 

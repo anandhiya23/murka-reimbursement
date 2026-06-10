@@ -5,7 +5,7 @@ import Select from "react-select";
 import ExpenseItem from "./components/ExpenseItem";
 import ReimbursementTable from "./components/ReimbursementTable";
 import { createClient } from "@/utils/supabase/client";
-import { LogOut, Plus, ShieldCheck, Send, Menu, X } from "lucide-react";
+import { LogOut, Plus, ShieldCheck, Send, Menu, X, KeyRound } from "lucide-react";
 
 interface Option {
   value: string;
@@ -238,6 +238,9 @@ export default function Home() {
               <span>
                 {user.name} ({user.email})
               </span>
+              <a href="/account" className="admin-link">
+                <KeyRound size={14} /> Password
+              </a>
               <button
                 type="button"
                 className="sign-out-btn"
