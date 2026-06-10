@@ -44,3 +44,7 @@ bintang-homelab-9ed1dd7d4328.json
 *.tsbuildinfo
 next-env.d.ts
 
+
+# superpowers worktrees + brainstorm artifacts
+.worktrees/
+.superpowers/
