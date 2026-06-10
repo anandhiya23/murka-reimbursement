@@ -1,8 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { seen, remember } from "@/lib/idempotency";
+import { toJpeg } from "@/lib/to-jpeg";
 import { NextResponse } from "next/server";
-import heicConvert from "heic-convert";
 
 function getYYMMDD(): string {
   const jakarta = new Date(
@@ -12,18 +12,6 @@ function getYYMMDD(): string {
   const mm = String(jakarta.getMonth() + 1).padStart(2, "0");
   const dd = String(jakarta.getDate()).padStart(2, "0");
   return yy + mm + dd;
-}
-
-async function toJpeg(file: { name: string; type: string; buffer: ArrayBuffer }): Promise<{ name: string; type: string; buffer: Buffer }> {
-  const isHeic = file.type === "image/heic" || file.type === "image/heif" ||
-    file.name.toLowerCase().endsWith(".heic");
-  if (!isHeic) return { ...file, buffer: Buffer.from(file.buffer) };
-  const converted = await heicConvert({ buffer: Buffer.from(file.buffer), format: "JPEG", quality: 0.88 });
-  return {
-    name: file.name.replace(/\.heic$/i, ".jpg"),
-    type: "image/jpeg",
-    buffer: Buffer.from(converted),
-  };
 }
 
 interface ExpenseItem {
