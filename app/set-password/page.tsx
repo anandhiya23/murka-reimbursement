@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
+import AuthCard from "@/app/components/AuthCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function SetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -45,53 +50,57 @@ export default function SetPasswordPage() {
 
   if (checking) {
     return (
-      <div className="login-container">
-        <div className="login-card"><p>Loading...</p></div>
-      </div>
+      <AuthCard>
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </AuthCard>
     );
   }
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <img src="/murka-logo-dark.svg" alt="Murka" className="login-logo" />
-
-        {!hasSession ? (
-          <>
-            <p>Link expired</p>
-            <p className="login-muted">
-              This link is invalid or has expired. Request a new one.
-            </p>
-            <a href="/forgot-password" className="login-link">Get a new link</a>
-          </>
-        ) : (
-          <>
-            <p>Set your password</p>
-            <form onSubmit={handleSubmit} className="login-form">
-              <label>New password</label>
-              <input
+    <AuthCard>
+      {!hasSession ? (
+        <div className="space-y-3">
+          <h1 className="text-lg font-semibold tracking-tight">Link expired</h1>
+          <p className="text-sm text-muted-foreground">
+            This link is invalid or has expired. Request a new one.
+          </p>
+          <Link href="/forgot-password" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            Get a new link
+          </Link>
+        </div>
+      ) : (
+        <>
+          <h1 className="text-lg font-semibold tracking-tight">Set your password</h1>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="password">New password</Label>
+              <Input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min 8 characters"
                 required
               />
-              <label>Confirm password</label>
-              <input
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm">Confirm password</Label>
+              <Input
+                id="confirm"
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="Re-enter password"
                 required
               />
-              {error && <p className="login-error">{error}</p>}
-              <button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Save password"}
-              </button>
-            </form>
-          </>
-        )}
-      </div>
-    </div>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Saving..." : "Save password"}
+            </Button>
+          </form>
+        </>
+      )}
+    </AuthCard>
   );
 }

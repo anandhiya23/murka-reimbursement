@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { ArrowLeft } from "lucide-react";
+import AuthCard from "@/app/components/AuthCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function AccountPage() {
   const [email, setEmail] = useState("");
@@ -61,44 +66,54 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <img src="/murka-logo-dark.svg" alt="Murka" className="login-logo" />
-        <p>Change password</p>
-        {email && <p className="login-muted">{email}</p>}
+    <AuthCard>
+      <div className="space-y-1">
+        <h1 className="text-lg font-semibold tracking-tight">Change password</h1>
+        {email && <p className="text-sm text-muted-foreground">{email}</p>}
+      </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <label>Current password</label>
-          <input
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="current">Current password</Label>
+          <Input
+            id="current"
             type="password"
             value={current}
             onChange={(e) => setCurrent(e.target.value)}
             required
           />
-          <label>New password</label>
-          <input
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="password">New password</Label>
+          <Input
+            id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Min 8 characters"
             required
           />
-          <label>Confirm new password</label>
-          <input
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm">Confirm new password</Label>
+          <Input
+            id="confirm"
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             required
           />
-          {error && <p className="login-error">{error}</p>}
-          {success && <p className="login-success">{success}</p>}
-          <button type="submit" disabled={loading}>
-            {loading ? "Saving..." : "Update password"}
-          </button>
-        </form>
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {success && <p className="text-sm font-medium text-emerald-600">{success}</p>}
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? "Saving..." : "Update password"}
+        </Button>
+      </form>
 
-        <a href="/" className="login-link"><ArrowLeft size={14} /> Back</a>
-      </div>
-    </div>
+      <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:underline">
+        <ArrowLeft size={14} /> Back
+      </Link>
+    </AuthCard>
   );
 }

@@ -17,16 +17,20 @@ export async function getEventidAccess(): Promise<EventidAccess> {
   ]);
 
   const isAdmin = isSuperAdmin || role === "admin";
-  const isPic = role === "pic";
 
+  // Division assignments are keyed by email, independent of role. An admin (or
+  // super-admin) can also be assigned as a PIC, so always resolve assignments by
+  // email rather than gating on the matched role — otherwise admins who are also
+  // PICs would never see their own divisions.
   let divisionIds: number[] = [];
-  if (isPic && user?.email) {
+  if (user?.email) {
     const { data } = await supabase
       .from("eventid_division_pics")
       .select("division_id")
       .eq("email", user.email);
     divisionIds = (data ?? []).map((r) => r.division_id);
   }
+  const isPic = role === "pic" || divisionIds.length > 0;
 
   return {
     supabase,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, Fragment } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +10,25 @@ import {
 } from "lucide-react";
 import { formatDate, formatSubmittedDate } from "@/lib/format";
 import { useToast, Toast } from "@/app/components/Toast";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ProofFile {
   id: number;
@@ -49,94 +68,87 @@ function formatAmount(amount: number): string {
   return "Rp" + amount.toLocaleString("id-ID");
 }
 
-function CollapsibleItems({
-  items,
-  isOpen,
-}: {
-  items: ReimbursementItem[];
-  isOpen: boolean;
-}) {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState(0);
+function statusClasses(status: string): string {
+  switch (status.toLowerCase()) {
+    case "approved":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "rejected":
+      return "border-red-200 bg-red-50 text-red-700";
+    default:
+      return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+}
 
-  useEffect(() => {
-    if (contentRef.current) {
-      setHeight(contentRef.current.scrollHeight);
-    }
-  }, [isOpen]);
-
+function ItemDetails({ items }: { items: ReimbursementItem[] }) {
   return (
-    <div
-      className="collapse-wrapper"
-      style={{ height: isOpen ? height : 0, opacity: isOpen ? 1 : 0 }}
-    >
-      <div ref={contentRef} className="collapse-content">
-        <div className="sub-header">
-          <div className="col col-chevron"></div>
-          <div className="col col-name">Project</div>
-          <div className="col col-date">Date</div>
-          <div className="col col-files">Files</div>
-          <div className="col col-amount">Amount</div>
-          <div className="col col-status">Status</div>
-        </div>
-        {items.map((item) => (
-          <div key={item.id} className="sub-row">
-            <div className="col col-chevron"></div>
-            <div className="col col-name">
-              <span className="sub-project">{item.project}</span>
-              {item.description && (
-                <span className="sub-desc">{item.description}</span>
-              )}
-              {item.reviewed_by && (
-                <span className="sub-review">
-                  Reviewed by {item.reviewed_by}
-                  {item.review_message && (
-                    <> &mdash; &quot;{item.review_message}&quot;</>
-                  )}
-                </span>
-              )}
-            </div>
-            <div className="col col-date">{formatDate(item.expense_date)}</div>
-            <div className="col col-files">
-              {item.proof_files?.length > 0
-                ? item.proof_files.map((f) => (
-                    <a
-                      key={f.id}
-                      href={f.public_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="proof-link"
-                    >
-                      <ExternalLink size={12} /> <span className="proof-name">{f.file_name}</span>
-                    </a>
-                  ))
-                : item.proof_url ? (
-                  <a
-                    href={item.proof_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="proof-link"
-                  >
-                    <ExternalLink size={12} /> View file
-                  </a>
-                ) : null}
-            </div>
-            <div className="col col-amount sub-amount">{formatAmount(item.amount)}</div>
-            <div className="col col-status">
-              <span className={`approvalStatus ${item.status.toLowerCase()}`}>
-                {item.status}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="bg-muted/30">
+      <Table className="table-fixed">
+        <TableHeader>
+          <TableRow className="hover:bg-transparent [&>th]:h-8 [&>th]:text-xs [&>th]:font-normal [&>th]:text-muted-foreground">
+            <TableHead className="w-10"></TableHead>
+            <TableHead>Project</TableHead>
+            <TableHead className="w-36">Date</TableHead>
+            <TableHead>Files</TableHead>
+            <TableHead className="w-36 text-right">Amount</TableHead>
+            <TableHead className="w-24 text-right">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((item) => (
+            <TableRow key={item.id} className="hover:bg-transparent">
+              <TableCell></TableCell>
+              <TableCell className="align-top">
+                <div className="font-medium">{item.project}</div>
+                {item.description && (
+                  <div className="text-xs text-muted-foreground">{item.description}</div>
+                )}
+                {item.reviewed_by && (
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    Reviewed by {item.reviewed_by}
+                    {item.review_message && <> &mdash; &quot;{item.review_message}&quot;</>}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell className="align-top text-sm">{formatDate(item.expense_date)}</TableCell>
+              <TableCell className="align-top">
+                <div className="flex flex-col gap-1">
+                  {item.proof_files?.length > 0
+                    ? item.proof_files.map((f) => (
+                        <a
+                          key={f.id}
+                          href={f.public_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-foreground underline-offset-2 hover:underline"
+                        >
+                          <ExternalLink size={12} /> <span className="max-w-40 truncate">{f.file_name}</span>
+                        </a>
+                      ))
+                    : item.proof_url && (
+                        <a
+                          href={item.proof_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-foreground underline-offset-2 hover:underline"
+                        >
+                          <ExternalLink size={12} /> View file
+                        </a>
+                      )}
+                </div>
+              </TableCell>
+              <TableCell className="align-top text-right font-mono text-sm">{formatAmount(item.amount)}</TableCell>
+              <TableCell className="align-top text-right">
+                <Badge variant="outline" className={statusClasses(item.status)}>{item.status}</Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
 
-export default function ReimbursementTable({
-  groups,
-}: ReimbursementTableProps) {
+export default function ReimbursementTable({ groups }: ReimbursementTableProps) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
@@ -160,10 +172,7 @@ export default function ReimbursementTable({
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safeCurrentPage = Math.min(page, totalPages - 1);
-  const paged = filtered.slice(
-    safeCurrentPage * pageSize,
-    (safeCurrentPage + 1) * pageSize
-  );
+  const paged = filtered.slice(safeCurrentPage * pageSize, (safeCurrentPage + 1) * pageSize);
 
   const start = filtered.length === 0 ? 0 : safeCurrentPage * pageSize + 1;
   const end = Math.min((safeCurrentPage + 1) * pageSize, filtered.length);
@@ -184,11 +193,7 @@ export default function ReimbursementTable({
     } else {
       pages.push(0);
       if (safeCurrentPage > 2) pages.push("...");
-      for (
-        let i = Math.max(1, safeCurrentPage - 1);
-        i <= Math.min(totalPages - 2, safeCurrentPage + 1);
-        i++
-      ) {
+      for (let i = Math.max(1, safeCurrentPage - 1); i <= Math.min(totalPages - 2, safeCurrentPage + 1); i++) {
         pages.push(i);
       }
       if (safeCurrentPage < totalPages - 3) pages.push("...");
@@ -196,139 +201,154 @@ export default function ReimbursementTable({
     }
     return pages.map((p, idx) =>
       p === "..." ? (
-        <span key={`ellipsis-${idx}`} className="dt-ellipsis">
-          ...
-        </span>
+        <span key={`ellipsis-${idx}`} className="px-1 text-sm text-muted-foreground">…</span>
       ) : (
-        <button
+        <Button
           key={p}
-          className={p === safeCurrentPage ? "active" : ""}
+          variant={p === safeCurrentPage ? "default" : "outline"}
+          size="icon"
+          className="h-8 w-8"
           onClick={() => setPage(p)}
         >
           {p + 1}
-        </button>
+        </Button>
       )
     );
   }
 
   return (
-    <div className="list-container">
-      <div className="dt-controls">
-        <div>
-          Show{" "}
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
+    <Card className="flex min-h-0 flex-col p-4 md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          Show
+          <Select
+            value={String(pageSize)}
+            onValueChange={(v) => {
+              setPageSize(Number(v));
               setPage(0);
             }}
           >
-            {[10, 25, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="h-8 w-18">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[10, 25, 50, 100].map((n) => (
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div>
-          Search{" "}
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(0);
-            }}
-          />
-        </div>
+        <Input
+          type="text"
+          value={search}
+          placeholder="Search…"
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(0);
+          }}
+          className="h-8 w-full max-w-xs sm:w-64"
+        />
       </div>
 
-      <div className="list-scroll-inner">
-      {/* Header */}
-      <div className="list-header">
-        <div className="col col-chevron"></div>
-        <div className="col col-name">Group ID</div>
-        <div className="col col-date">Submitted</div>
-        <div className="col col-files">Approver</div>
-        <div className="col col-amount">Approved Total</div>
-        <div className="col col-status">Items</div>
+      <div className="min-h-0 flex-1 overflow-auto rounded-md border">
+        <Table className="min-w-170 table-fixed">
+          <TableHeader className="sticky top-0 bg-card">
+            <TableRow>
+              <TableHead className="w-10"></TableHead>
+              <TableHead>Group ID</TableHead>
+              <TableHead className="w-36">Submitted</TableHead>
+              <TableHead>Approver</TableHead>
+              <TableHead className="w-36 text-right">Approved Total</TableHead>
+              <TableHead className="w-24 text-right">Items</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paged.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  No reimbursements yet
+                </TableCell>
+              </TableRow>
+            ) : (
+              paged.map((g) => {
+                const isExpanded = expandedGroups.has(g.id);
+                const approvedTotal = g.reimbursements.reduce(
+                  (sum, r) => (r.status === "Approved" ? sum + r.amount : sum),
+                  0
+                );
+                return (
+                  <Fragment key={g.id}>
+                    <TableRow
+                      className="cursor-pointer"
+                      data-state={isExpanded ? "selected" : undefined}
+                      onClick={() => toggleExpand(g.id)}
+                    >
+                      <TableCell>
+                        <ChevronRight
+                          size={16}
+                          className={`text-muted-foreground transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="h-auto p-0 font-mono font-medium text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const code = g.group_code.replace(/^#/, "");
+                            navigator.clipboard.writeText(code);
+                            showToast(`Copied ${code}`);
+                          }}
+                        >
+                          {g.group_code}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatSubmittedDate(g.created_at)}</TableCell>
+                      <TableCell className="text-sm">{g.approver}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {approvedTotal > 0 ? formatAmount(approvedTotal) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {g.reimbursements.length}
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={6} className="p-0">
+                          <ItemDetails items={g.reimbursements} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Rows */}
-      <div className="list-body">
-        {paged.length === 0 ? (
-          <div className="list-empty">No reimbursements yet</div>
-        ) : (
-          paged.map((g) => {
-            const isExpanded = expandedGroups.has(g.id);
-            const approvedTotal = g.reimbursements.reduce(
-              (sum, r) => (r.status === "Approved" ? sum + r.amount : sum),
-              0
-            );
-
-            return (
-              <div key={g.id} className="group-block">
-                <div
-                  className={`group-row ${isExpanded ? "expanded" : ""}`}
-                  onClick={() => toggleExpand(g.id)}
-                >
-                  <div className="col col-chevron">
-                    <ChevronRight size={16} className="chevron-icon" />
-                  </div>
-                  <div className="col col-name">
-                    <span
-                      className="group-code"
-                      onClick={(e) => { e.stopPropagation(); const code = g.group_code.replace(/^#/, ""); navigator.clipboard.writeText(code); showToast(`Copied ${code}`); }}
-                    >{g.group_code}</span>
-                  </div>
-                  <div className="col col-date">
-                    {formatSubmittedDate(g.created_at)}
-                  </div>
-                  <div className="col col-files">
-                    {g.approver}
-                  </div>
-                  <div className="col col-amount">
-                    {approvedTotal > 0 ? formatAmount(approvedTotal) : "-"}
-                  </div>
-                  <div className="col col-status">
-                    {g.reimbursements.length} item
-                    {g.reimbursements.length !== 1 ? "s" : ""}
-                  </div>
-                </div>
-
-                <CollapsibleItems
-                  items={g.reimbursements}
-                  isOpen={isExpanded}
-                />
-              </div>
-            );
-          })
-        )}
-      </div>
-      </div>
-
-      {/* Pagination */}
-      <div className="dt-controls dt-bottom">
-        <div className="dt-info">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
+        <div className="text-sm text-muted-foreground">
           Showing {start} to {end} of {filtered.length}
         </div>
-        <div className="dt-pagination">
-          <button disabled={safeCurrentPage === 0} onClick={() => setPage(0)} title="First">
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" className="h-8 w-8" disabled={safeCurrentPage === 0} onClick={() => setPage(0)} title="First">
             <ChevronsLeft size={16} />
-          </button>
-          <button disabled={safeCurrentPage === 0} onClick={() => setPage((p) => p - 1)} title="Previous">
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" disabled={safeCurrentPage === 0} onClick={() => setPage((p) => p - 1)} title="Previous">
             <ChevronLeft size={16} />
-          </button>
+          </Button>
           {renderPages()}
-          <button disabled={safeCurrentPage >= totalPages - 1} onClick={() => setPage((p) => p + 1)} title="Next">
+          <Button variant="outline" size="icon" className="h-8 w-8" disabled={safeCurrentPage >= totalPages - 1} onClick={() => setPage((p) => p + 1)} title="Next">
             <ChevronRight size={16} />
-          </button>
-          <button disabled={safeCurrentPage >= totalPages - 1} onClick={() => setPage(totalPages - 1)} title="Last">
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" disabled={safeCurrentPage >= totalPages - 1} onClick={() => setPage(totalPages - 1)} title="Last">
             <ChevronsRight size={16} />
-          </button>
+          </Button>
         </div>
       </div>
       <Toast message={toastMsg} />
-    </div>
+    </Card>
   );
 }

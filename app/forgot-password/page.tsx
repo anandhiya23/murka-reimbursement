@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
+import AuthCard from "@/app/components/AuthCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -29,39 +34,42 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <img src="/murka-logo-dark.svg" alt="Murka" className="login-logo" />
-
-        {sent ? (
-          <>
-            <p>Check your email</p>
-            <p className="login-muted">
-              If an account exists for {email}, a password reset link is on its way.
-            </p>
-            <a href="/login" className="login-link">Back to sign in</a>
-          </>
-        ) : (
-          <>
-            <p>Reset your password</p>
-            <form onSubmit={handleSubmit} className="login-form">
-              <label>Email</label>
-              <input
+    <AuthCard>
+      {sent ? (
+        <div className="space-y-3">
+          <h1 className="text-lg font-semibold tracking-tight">Check your email</h1>
+          <p className="text-sm text-muted-foreground">
+            If an account exists for {email}, a password reset link is on its way.
+          </p>
+          <Link href="/login" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            Back to sign in
+          </Link>
+        </div>
+      ) : (
+        <>
+          <h1 className="text-lg font-semibold tracking-tight">Reset your password</h1>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
               />
-              {error && <p className="login-error">{error}</p>}
-              <button type="submit" disabled={loading}>
-                {loading ? "Sending..." : "Send reset link"}
-              </button>
-            </form>
-            <a href="/login" className="login-link">Back to sign in</a>
-          </>
-        )}
-      </div>
-    </div>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Sending..." : "Send reset link"}
+            </Button>
+          </form>
+          <Link href="/login" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            Back to sign in
+          </Link>
+        </>
+      )}
+    </AuthCard>
   );
 }

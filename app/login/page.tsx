@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
+import AuthCard from "@/app/components/AuthCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,10 +26,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setError(error.message);
@@ -35,37 +37,44 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <img src="/murka-logo-dark.svg" alt="Murka" className="login-logo" />
+    <AuthCard>
+      <div className="space-y-1">
+        <h1 className="text-lg font-semibold tracking-tight">Sign in</h1>
+        <p className="text-sm text-muted-foreground">Sign in to continue</p>
+      </div>
 
-        <p>Sign in to continue</p>
-
-        <form onSubmit={handleEmailLogin} className="login-form">
-          <label>Email</label>
-          <input
+      <form onSubmit={handleEmailLogin} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
           />
-          <label>Password</label>
-          <input
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Your password"
             required
           />
-          {error && <p className="login-error">{error}</p>}
-          <button type="submit" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? "Signing in..." : "Sign in"}
+        </Button>
+      </form>
 
-        <a href="/forgot-password" className="login-link">Forgot password?</a>
-      </div>
-    </div>
+      <Link href="/forgot-password" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+        Forgot password?
+      </Link>
+    </AuthCard>
   );
 }

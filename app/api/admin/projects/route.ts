@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdmin } from "@/utils/supabase/verify-admin";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 // GET all projects (including inactive)
 export async function GET() {
@@ -85,6 +86,60 @@ export async function POST(request: Request) {
     console.error("Projects update error:", error);
     return NextResponse.json(
       { error: "Failed to update project" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: permanently remove a project, only if no reimbursement uses it.
+export async function DELETE(request: Request) {
+  try {
+    const { admin } = await verifyAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { id } = (await request.json()) as { id: number };
+    if (!id) {
+      return NextResponse.json({ error: "Project id is required" }, { status: 400 });
+    }
+
+    // Service role: projects has no DELETE RLS policy, so the user-scoped
+    // client would silently delete zero rows. Admin is already verified above.
+    const adminDb = createAdminClient();
+
+    const { data: project, error: fetchError } = await adminDb
+      .from("projects")
+      .select("name")
+      .eq("id", id)
+      .single();
+    if (fetchError || !project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    // Reimbursements reference a project by its name string — block deletion
+    // while any item still points at it.
+    const { count, error: countError } = await adminDb
+      .from("reimbursements")
+      .select("id", { count: "exact", head: true })
+      .eq("project", project.name);
+    if (countError) throw countError;
+
+    if (count && count > 0) {
+      return NextResponse.json(
+        { error: `Cannot delete: ${count} reimbursement item${count !== 1 ? "s" : ""} still use this project.` },
+        { status: 409 }
+      );
+    }
+
+    const { error } = await adminDb.from("projects").delete().eq("id", id);
+    if (error) throw error;
+
+    return NextResponse.json({ status: "OK" });
+  } catch (error) {
+    console.error("Project delete error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete project" },
       { status: 500 }
     );
   }

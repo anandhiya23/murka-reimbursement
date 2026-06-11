@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect } from "react";
+import useSWR from "swr";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import EventidHeader from "@/app/components/EventidHeader";
 import MembersPanel from "@/app/components/eventid/MembersPanel";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
 
@@ -13,21 +16,24 @@ interface DivInfo { id: number; name: string; slug: string; event_id: number; ev
 export default function DivisionPage() {
   const { divisionId } = useParams();
   const id = Number(divisionId);
-  const [div, setDiv] = useState<DivInfo | null>(null);
-  const [notFound, setNotFound] = useState(false);
+  const { data, error, isLoading } = useSWR<DivInfo[]>("/api/eventid/divisions");
+  const div = (data ?? []).find((d) => d.id === id) ?? null;
+  const notFound = !!data && !div;
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-  const load = useCallback(async () => {
-    const res = await fetch("/api/eventid/divisions");
-    if (res.status === 403) { window.location.href = "/eventid"; return; }
-    const divs: DivInfo[] = await res.json();
-    const found = (divs ?? []).find((d) => d.id === id) ?? null;
-    if (!found) setNotFound(true); else setDiv(found);
-  }, [id]);
-  useEffect(() => { load(); }, [load]);
+  // Route returns 403 for non-admins -> bounce to the dashboard.
+  useEffect(() => { if (error) window.location.href = "/eventid"; }, [error]);
 
   if (notFound) return (<><EventidHeader /><div className="p-8 text-muted-foreground">Division not found.</div></>);
-  if (!div) return (<><EventidHeader /><div className="p-8 text-muted-foreground">Loading…</div></>);
+  if (isLoading || !div) return (
+    <>
+      <EventidHeader />
+      <div className="mx-auto max-w-5xl p-4 md:p-6 space-y-4">
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    </>
+  );
 
   const link = `${origin}/e/${div.event_slug}/${div.slug}`;
 
@@ -36,7 +42,7 @@ export default function DivisionPage() {
       <EventidHeader subtitle={div.name} />
       <div className="mx-auto max-w-5xl p-4 md:p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <a href="/eventid" className="text-sm text-muted-foreground hover:underline">← Back</a>
+          <Link href="/eventid" className="text-sm text-muted-foreground hover:underline">← Back</Link>
           <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(link); toast.success("Public link copied"); }}>
             <Copy className="h-4 w-4" /> Public link
           </Button>

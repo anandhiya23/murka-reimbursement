@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getEventidAccess } from "@/utils/supabase/eventid-access";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { bannerPublicUrl } from "@/lib/eventid-banner";
 
 function slugify(s: string): string {
   return (
@@ -15,10 +16,13 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("eventid_events")
-    .select("id, name, slug, description, starts_on, ends_on, is_open, created_at")
+    .select("id, name, slug, description, starts_on, ends_on, is_open, banner_path, created_at")
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  const withUrls = (data ?? []).map(({ banner_path, ...e }) => ({
+    ...e, banner_url: bannerPublicUrl(banner_path),
+  }));
+  return NextResponse.json(withUrls);
 }
 
 // POST: create an event (auto slug, unique-suffixed).

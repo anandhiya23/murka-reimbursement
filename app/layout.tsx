@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import BfcacheReload from "@/app/components/BfcacheReload";
+import Providers from "@/app/components/Providers";
 import { Toaster } from "@/components/ui/sonner";
 import { Geist, Geist_Mono, Archivo } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,7 @@ export default function RootLayout({
     <html lang="en" className={cn("font-sans", geist.variable, geistMono.variable, archivo.variable)}>
       <body>
         <BfcacheReload />
-        {children}
+        <Providers>{children}</Providers>
         <Toaster />
       </body>
     </html>

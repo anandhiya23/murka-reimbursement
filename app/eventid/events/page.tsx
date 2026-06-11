@@ -1,35 +1,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
+import Link from "next/link";
 import EventidHeader from "@/app/components/EventidHeader";
+import EventBanner from "@/app/components/eventid/EventBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Plus, ArrowRight, Copy } from "lucide-react";
 
 interface EventRow {
-  id: number; name: string; slug: string; is_open: boolean;
+  id: number; name: string; slug: string; is_open: boolean; banner_url: string | null;
 }
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<EventRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, mutate } = useSWR<EventRow[]>("/api/eventid/events");
+  const events = Array.isArray(data) ? data : [];
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-  async function load() {
-    const res = await fetch("/api/eventid/events");
-    if (res.status === 403) { window.location.href = "/eventid"; return; }
-    const data = await res.json();
-    if (Array.isArray(data)) setEvents(data);
-    setLoading(false);
-  }
-  useEffect(() => { load(); }, []);
+  // Route returns 403 for non-admins -> bounce to the dashboard.
+  useEffect(() => { if (error) window.location.href = "/eventid"; }, [error]);
 
   async function create() {
     if (!name.trim()) return;
@@ -47,13 +44,13 @@ export default function EventsPage() {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: ev.id, action: "toggle_open", is_open: !ev.is_open }),
     });
-    load();
+    mutate();
   }
 
   return (
     <>
       <EventidHeader subtitle="Events" />
-      <div className="mx-auto max-w-4xl p-4 md:p-6 space-y-6">
+      <div className="mx-auto max-w-5xl p-4 md:p-6 space-y-6">
         <Card>
           <CardHeader><CardTitle className="text-base">Create event</CardTitle></CardHeader>
           <CardContent className="flex flex-wrap items-end gap-3">
@@ -65,25 +62,33 @@ export default function EventsPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-2">
-          {loading ? <p className="text-sm text-muted-foreground">Loading…</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {isLoading ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-56 rounded-lg" />)
             : events.length === 0 ? <p className="text-sm text-muted-foreground">No events yet.</p>
             : events.map((ev) => (
-              <Card key={ev.id}>
-                <CardContent className="flex flex-wrap items-center gap-3 py-3">
-                  <div>
-                    <div className="font-display font-semibold uppercase tracking-wide">{ev.name}</div>
-                    <div className="font-mono text-xs text-muted-foreground">/e/{ev.slug}</div>
+              <Card key={ev.id} className="flex flex-col overflow-hidden p-0">
+                <EventBanner url={ev.banner_url} name={ev.name} rounded="rounded-none"
+                  className="border-0 border-b" />
+                <CardContent className="flex flex-1 flex-col gap-3 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate font-display font-semibold uppercase tracking-wide">{ev.name}</div>
+                      <div className="truncate font-mono text-xs text-muted-foreground">/e/{ev.slug}</div>
+                    </div>
+                    <label className="flex shrink-0 items-center gap-2">
+                      <span className={`text-xs font-medium ${ev.is_open ? "text-primary" : "text-muted-foreground"}`}>
+                        {ev.is_open ? "Open" : "Closed"}
+                      </span>
+                      <Switch checked={ev.is_open} onCheckedChange={() => toggle(ev)} />
+                    </label>
                   </div>
-                  {ev.is_open
-                    ? <Badge variant="outline" className="border-primary/40 bg-primary/15 text-primary">Open</Badge>
-                    : <Badge variant="outline">Closed</Badge>}
-                  <div className="ml-auto flex items-center gap-2">
-                    <Switch checked={ev.is_open} onCheckedChange={() => toggle(ev)} />
-                    <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(`${origin}/e/${ev.slug}`); toast.success("Link copied"); }}>
-                      <Copy className="h-4 w-4" /> Link
+                  <div className="mt-auto flex gap-2 border-t border-border pt-3">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => { navigator.clipboard.writeText(`${origin}/e/${ev.slug}`); toast.success("Link copied"); }}>
+                      <Copy className="h-4 w-4" /> Copy link
                     </Button>
-                    <Button size="sm" asChild><a href={`/eventid/e/${ev.slug}`}>Manage <ArrowRight className="h-4 w-4" /></a></Button>
+                    <Button size="sm" className="flex-1" asChild>
+                      <Link href={`/eventid/e/${ev.slug}`}>Manage <ArrowRight className="h-4 w-4" /></Link>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
