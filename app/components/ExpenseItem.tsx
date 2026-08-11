@@ -116,7 +116,7 @@ export default function ExpenseItem({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label htmlFor={`date-${index}`}>Expense Date</Label>
           <Input
             id={`date-${index}`}
@@ -127,7 +127,7 @@ export default function ExpenseItem({
           />
           {error?.expenseDate && <p className="text-xs text-destructive">Required.</p>}
         </div>
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label htmlFor={`amount-${index}`}>Amount (IDR)</Label>
           <Input
             id={`amount-${index}`}

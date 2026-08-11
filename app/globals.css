@@ -79,6 +79,29 @@
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
   }
+
+  /* iOS Safari gives date/time inputs a fixed-width native control that ignores
+     the box width, so it overflows narrow grid cells. Force it to shrink. */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+    min-width: 0;
+    margin: 0;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    margin-inline-start: 0;
+    padding: 0;
+  }
 }
 
 /* Legacy Murka styles live in the components layer so shadcn's utility classes
